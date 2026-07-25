@@ -25,6 +25,13 @@ for (const file of ["pdf.mjs", "pdf.worker.mjs"]) {
     path.join(vendorTarget, file)
   );
 }
+await fs.copyFile(
+  path.join(root, "node_modules", "pdfjs-dist", "LICENSE"),
+  path.join(vendorTarget, "PDFJS_LICENSE")
+);
+for (const file of ["LICENSE", "PRIVACY.md", "THIRD_PARTY_NOTICES.md"]) {
+  await fs.copyFile(path.join(root, file), path.join(target, file));
+}
 
 const manifest = JSON.parse(await fs.readFile(path.join(target, "manifest.json"), "utf8"));
 console.log(`Built ${manifest.name} v${manifest.version} at ${target}`);

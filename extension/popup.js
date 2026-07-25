@@ -16,8 +16,12 @@ const elements = Object.fromEntries(
 );
 
 let candidate = null;
-let storageArea = api.storage.session ?? api.storage.local;
+const storageArea = api.storage.session;
 const STORAGE_KEY = "tds26qbEphemeralCandidate";
+
+if (!storageArea) {
+  throw new Error("This browser does not support in-memory extension session storage.");
+}
 
 const localNow = new Date();
 elements["payment-date"].value = new Date(
@@ -149,12 +153,7 @@ async function runPortalAction(type) {
         overwrite: elements.overwrite.checked
       });
     } catch {
-      await api.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
-      result = await api.tabs.sendMessage(tab.id, {
-        type,
-        filing: candidate,
-        overwrite: elements.overwrite.checked
-      });
+      throw new Error("The portal helper is not loaded. Reload the Income Tax portal tab and try again.");
     }
     showPortalResult(formatResult(result), !result?.ok);
   } catch (error) {

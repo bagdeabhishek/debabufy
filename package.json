@@ -2,10 +2,29 @@
   "name": "tds-26qb-assistant",
   "version": "0.1.0",
   "private": true,
-  "description": "Local, review-first Form 26QB statement inference and portal-filling assistant",
+  "description": "Unofficial, local-only browser extension for reviewing and filling recurring Form 26QB instalments",
   "type": "module",
+  "license": "MIT",
+  "author": "26QB Next Instalment Assistant contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bagdeabhishek/tds-26qb-assistant.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bagdeabhishek/tds-26qb-assistant/issues"
+  },
+  "homepage": "https://github.com/bagdeabhishek/tds-26qb-assistant#readme",
+  "keywords": [
+    "browser-extension",
+    "form-26qb",
+    "income-tax",
+    "manifest-v3",
+    "privacy",
+    "tds"
+  ],
   "scripts": {
     "build": "node scripts/build-extension.js",
+    "check": "node scripts/check-public.js",
     "inspect:pdf": "node scripts/extract-pdf-text.js",
     "package": "npm run build && node scripts/package-extension.js",
     "test": "node --test"
@@ -14,6 +33,7 @@
     "pdfjs-dist": "^5.4.54"
   },
   "engines": {
-    "node": ">=20"
-  }
+    "node": ">=22.13.0"
+  },
+  "packageManager": "npm@11.16.0"
 }
