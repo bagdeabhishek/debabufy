@@ -2,15 +2,10 @@
   "manifest_version": 3,
   "name": "26QB Next Instalment Assistant",
   "version": "0.1.0",
-  "description": "Locally reads a prior Form 26QB challan statement, proposes the next instalment, and safely fills visible portal fields.",
+  "description": "Unofficial, local-only assistant for reviewing and filling recurring Form 26QB instalments.",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage"
-  ],
-  "host_permissions": [
-    "https://www.incometax.gov.in/*",
-    "https://eportal.incometax.gov.in/*"
   ],
   "action": {
     "default_title": "26QB assistant",

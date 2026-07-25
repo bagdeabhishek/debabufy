@@ -45,8 +45,9 @@ the live form.
 10. Continue through the portal manually, reopening the extension on each page
     that needs filling.
 
-The reviewed proposal is held in browser session storage for at most two hours
-so it survives portal navigation. **Clear** removes it immediately.
+The reviewed proposal is held only in in-memory browser session storage for at
+most two hours so it survives portal navigation. **Clear** removes it
+immediately, and the browser clears it on restart.
 
 ## Current safety and implementation boundaries
 
@@ -58,8 +59,8 @@ so it survives portal navigation. **Clear** removes it immediately.
 - The content script is restricted to `www.incometax.gov.in` and
   `eportal.incometax.gov.in`.
 - No submission or payment buttons are queried or clicked.
-- Browser-session storage is used when available. Older Firefox versions may
-  fall back to local storage with the same two-hour expiry.
+- In-memory browser-session storage is required; there is no disk-backed storage
+  fallback.
 
 ## Build and test
 
@@ -76,8 +77,8 @@ Outputs:
 
 ## Next live-test loop
 
-The statement parser has been tested against the supplied three-page challan
-statement. Portal field selectors cannot be fully verified without a live,
-authenticated form page. Use **Preview matches** on each Form 26QB step; the
-result counts will show which page labels need a selector alias. Do not enable
-overwrite during the first live test.
+The statement parser is covered by a synthetic fixture matching the observed
+three-page challan layout. Portal field selectors cannot be fully verified
+without a live, authenticated form page. Use **Preview matches** on each Form
+26QB step; the result counts show which page labels need a selector alias. Never
+include real statements, PANs, contact details, or payment data in an issue.

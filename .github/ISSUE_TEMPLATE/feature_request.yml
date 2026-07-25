@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest an improvement that preserves the project safety boundaries.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow problem should be solved?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Explain how it preserves local-only processing and human-controlled submission/payment.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Safety boundaries
+      options:
+        - label: This does not require real filing data in the issue.
+          required: true
+        - label: This does not automate credentials, OTP, submission, or payment.
+          required: true
