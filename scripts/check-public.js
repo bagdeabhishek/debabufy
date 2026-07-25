@@ -13,6 +13,7 @@ const syntaxFiles = [
   "scripts/check-public.js",
   "scripts/extract-pdf-text.js",
   "scripts/package-extension.js",
+  "scripts/verify-package.js",
   "src/lib/infer.js",
   "src/lib/pdf.js",
   "src/lib/statement.js",

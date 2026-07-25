@@ -129,12 +129,18 @@ npm ci
 npm run check
 npm test
 npm run package
+npm run verify:package
 ```
 
 Outputs:
 
 - unpacked extension: `dist/extension`
 - ZIP package: `dist/tds-26qb-assistant.zip`
+- SHA-256 checksum: `dist/tds-26qb-assistant.zip.sha256`
+
+Every push or merged pull request to `main` runs CI and uploads the ZIP and
+checksum as a GitHub Actions artifact retained for 30 days. Open the successful
+workflow run and download the `tds-26qb-assistant-main-*` artifact.
 
 Before changing repository visibility or publishing a browser-store package,
 complete the [public release checklist](docs/PUBLIC_RELEASE_CHECKLIST.md).
