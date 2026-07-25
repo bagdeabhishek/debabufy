@@ -136,6 +136,9 @@ Outputs:
 - unpacked extension: `dist/extension`
 - ZIP package: `dist/tds-26qb-assistant.zip`
 
+Before changing repository visibility or publishing a browser-store package,
+complete the [public release checklist](docs/PUBLIC_RELEASE_CHECKLIST.md).
+
 Important source areas:
 
 - `src/lib/statement.js` — statement parsing and normalization

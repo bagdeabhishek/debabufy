@@ -80,6 +80,7 @@ if (!/storage\.session\b/.test(popupSource)) {
 
 const scanRoots = [
   ".github",
+  "docs",
   "extension",
   "scripts",
   "src",
