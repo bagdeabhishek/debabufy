@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>26QB assistant</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">FORM 26QB</div>
+      <h1>Next instalment</h1>
+      <p>Previous statement in, reviewed portal fields out.</p>
+    </header>
+
+    <main>
+      <section class="card" id="input-card">
+        <div class="step">1</div>
+        <div class="card-body">
+          <h2>Previous challan</h2>
+          <label class="file-drop" for="statement">
+            <span id="file-label">Choose PDF, JSON, or text statement</span>
+            <input id="statement" type="file" accept=".pdf,.json,.txt,application/pdf,application/json,text/plain">
+          </label>
+          <div class="form-grid">
+            <label>
+              Current amount paid
+              <span class="money-input"><span>₹</span><input id="amount" inputmode="decimal" placeholder="0.00"></span>
+            </label>
+            <label>
+              Payment/deduction date
+              <input id="payment-date" type="date">
+            </label>
+          </div>
+          <button id="analyze" class="primary">Analyze locally</button>
+          <p class="privacy-note">The statement stays inside this browser. Nothing is uploaded.</p>
+        </div>
+      </section>
+
+      <section class="card hidden" id="review-card">
+        <div class="step">2</div>
+        <div class="card-body">
+          <div class="title-row">
+            <h2>Review proposal</h2>
+            <span class="badge" id="party-count"></span>
+          </div>
+          <div id="warnings"></div>
+          <dl class="summary" id="summary"></dl>
+
+          <details>
+            <summary>Edit complete filing JSON</summary>
+            <p class="helper">Changes here are used for page matching and autofill.</p>
+            <textarea id="candidate-json" spellcheck="false"></textarea>
+          </details>
+
+          <label class="confirm">
+            <input id="approved" type="checkbox">
+            <span>I reviewed the parties, property, dates, rate, TDS, interest, fee, and total.</span>
+          </label>
+          <div class="button-row">
+            <button id="download" class="secondary">Download JSON</button>
+            <button id="clear" class="ghost">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card hidden" id="portal-card">
+        <div class="step">3</div>
+        <div class="card-body">
+          <h2>Fill current portal page</h2>
+          <p class="helper">Open the relevant 26QB step in the active tab. Preview first; filling never clicks Continue, Submit, or Pay.</p>
+          <label class="confirm compact">
+            <input id="overwrite" type="checkbox">
+            <span>Overwrite fields that already contain values</span>
+          </label>
+          <div class="button-row">
+            <button id="preview" class="secondary" disabled>Preview matches</button>
+            <button id="fill" class="primary" disabled>Fill blank fields</button>
+          </div>
+          <div id="portal-result" class="result hidden"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Local-only · No payment automation</span>
+      <span id="status"></span>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

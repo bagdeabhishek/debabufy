@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "26QB Next Instalment Assistant",
+  "version": "0.1.0",
+  "description": "Locally reads a prior Form 26QB challan statement, proposes the next instalment, and safely fills visible portal fields.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.incometax.gov.in/*",
+    "https://eportal.incometax.gov.in/*"
+  ],
+  "action": {
+    "default_title": "26QB assistant",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.incometax.gov.in/*",
+        "https://eportal.incometax.gov.in/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tds-26qb-assistant@local",
+      "strict_min_version": "121.0"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "tds-26qb-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local, review-first Form 26QB statement inference and portal-filling assistant",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-extension.js",
+    "inspect:pdf": "node scripts/extract-pdf-text.js",
+    "package": "npm run build && node scripts/package-extension.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.4.54"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

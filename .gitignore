@@ -1,0 +1,19 @@
+# Never commit captures, live filing inputs, receipts, or browser sessions.
+raw/
+sanitized/
+inputs/
+receipts/
+screenshots/
+browser-profile/
+private/
+node_modules/
+dist/
+__pycache__/
+*.har
+*.zip
+*.pdf
+
+# Local research artifacts; not part of the extension repository.
+/REPORT.md
+/analyze_har.py
+/automation-input.example.json
