@@ -31,7 +31,7 @@
     "verify:package": "node scripts/verify-package.js"
   },
   "dependencies": {
-    "pdfjs-dist": "^5.4.54"
+    "pdfjs-dist": "^6.1.200"
   },
   "engines": {
     "node": ">=22.13.0"
