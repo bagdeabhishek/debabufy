@@ -32,8 +32,23 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build extension
-        run: npm run build
+      - name: Package extension
+        run: npm run package
+
+      - name: Verify extension package
+        run: npm run verify:package
 
       - name: Audit production dependencies
         run: npm audit --omit=dev
+
+      - name: Upload main-branch extension artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tds-26qb-assistant-main-${{ github.run_number }}-${{ github.sha }}
+          path: |
+            dist/tds-26qb-assistant.zip
+            dist/tds-26qb-assistant.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

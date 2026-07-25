@@ -27,7 +27,8 @@
     "check": "node scripts/check-public.js",
     "inspect:pdf": "node scripts/extract-pdf-text.js",
     "package": "npm run build && node scripts/package-extension.js",
-    "test": "node --test"
+    "test": "node --test",
+    "verify:package": "node scripts/verify-package.js"
   },
   "dependencies": {
     "pdfjs-dist": "^5.4.54"

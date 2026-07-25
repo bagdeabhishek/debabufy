@@ -74,6 +74,10 @@ Outputs:
 
 - unpacked extension: `dist/extension`
 - ZIP package: `dist/tds-26qb-assistant.zip`
+- SHA-256 checksum: `dist/tds-26qb-assistant.zip.sha256`
+
+Successful pushes to `main` also upload the ZIP and checksum as a GitHub Actions
+artifact retained for 30 days.
 
 ## Next live-test loop
 

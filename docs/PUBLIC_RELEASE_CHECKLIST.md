@@ -36,11 +36,14 @@ browser-store package.
 - [ ] Run `npm test`.
 - [ ] Run `npm audit --omit=dev`.
 - [ ] Run `npm run package`.
+- [ ] Run `npm run verify:package`.
 - [ ] Inspect `dist/tds-26qb-assistant.zip`.
+- [ ] Verify `dist/tds-26qb-assistant.zip.sha256`.
 - [ ] Confirm the ZIP includes `LICENSE`, `PRIVACY.md`,
       `THIRD_PARTY_NOTICES.md`, and `vendor/PDFJS_LICENSE`.
 - [ ] Confirm the ZIP contains no source statement, HAR, browser profile, build
       cache, or dependency directory.
+- [ ] Confirm a merge to `main` uploads the ZIP and checksum artifact.
 
 ## Store listing
 

@@ -9,6 +9,7 @@ All notable changes will be documented in this file.
 - Reduced extension permissions by removing runtime scripting and redundant
   host permissions.
 - CI, Dependabot, contribution guidance, and synthetic-data safeguards.
+- Main-branch extension artifacts with SHA-256 checksums and 30-day retention.
 
 ## [0.1.0] - 2026-07-26
 
