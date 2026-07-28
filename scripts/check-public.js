@@ -7,7 +7,9 @@ import process from "node:process";
 
 const root = process.cwd();
 const syntaxFiles = [
+  "extension/background.js",
   "extension/content.js",
+  "extension/diagnostic-bridge.js",
   "extension/popup.js",
   "bin/form141-assistant.js",
   "scripts/build-extension.js",
@@ -24,6 +26,7 @@ const syntaxFiles = [
   "src/cli/args.js",
   "test/cli.test.js",
   "test/cli-helper.test.js",
+  "test/diagnostics.test.js",
   "test/statement.test.js"
 ];
 
@@ -108,8 +111,25 @@ for (const match of matches) {
   if (!allowedMatches.has(match)) errors.push(`Unexpected content-script host: ${match}`);
 }
 
+const diagnosticBridge = (manifest.content_scripts ?? []).find((entry) =>
+  entry.js?.includes("diagnostic-bridge.js")
+);
+if (
+  diagnosticBridge?.world !== "MAIN" ||
+  diagnosticBridge.matches?.length !== 1 ||
+  diagnosticBridge.matches[0] !== "https://eportal.incometax.gov.in/*"
+) {
+  errors.push("The diagnostic bridge must be limited to the e-filing portal main world.");
+}
+
 const popupSource = fs.readFileSync(path.join(root, "extension/popup.js"), "utf8");
-if (/storage\.(?:local|sync)\b/.test(popupSource)) {
+const diagnosticSources = [
+  popupSource,
+  fs.readFileSync(path.join(root, "extension/background.js"), "utf8"),
+  fs.readFileSync(path.join(root, "extension/content.js"), "utf8"),
+  fs.readFileSync(path.join(root, "extension/diagnostic-bridge.js"), "utf8")
+].join("\n");
+if (/storage\.(?:local|sync)\b/.test(diagnosticSources)) {
   errors.push("Disk-backed or synchronized extension storage is not allowed.");
 }
 if (!/storage\.session\b/.test(popupSource)) {

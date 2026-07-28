@@ -37,6 +37,11 @@ The CLI and extension must not:
 - click navigation, submission, challan creation, or payment controls; or
 - bypass portal authentication, validation, or anti-automation mechanisms.
 
+The opt-in diagnostic recorder may observe Form 141 payment-API request and
+response shapes, but must store only endpoint paths, HTTP status codes, and JSON
+key/type paths. It must never store headers, cookies, tokens, or request/response
+values.
+
 The CLI deliberately uses a separate persistent browser profile so the user can
 complete portal login. That directory may contain authentication/session data:
 do not share or back it up, and delete it when persistence is no longer wanted.

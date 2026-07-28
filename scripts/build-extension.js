@@ -21,6 +21,13 @@ const targets = [
     browser: "firefox",
     transformManifest(manifest) {
       delete manifest.minimum_chrome_version;
+      manifest.content_scripts = manifest.content_scripts.filter(
+        (entry) => entry.world !== "MAIN"
+      );
+      manifest.background = {
+        scripts: ["background.js"],
+        type: "module"
+      };
       return manifest;
     }
   }

@@ -11,7 +11,9 @@ const elements = Object.fromEntries(
     "statement", "file-label", "amount", "payment-date", "analyze", "review-card",
     "portal-card", "warnings", "summary", "party-count", "candidate-json",
     "approved", "overwrite", "preview", "fill", "download", "clear",
-    "page-map", "portal-result", "status"
+    "page-map", "portal-result", "status", "diagnostic-start",
+    "diagnostic-capture", "diagnostic-stop", "diagnostic-clear",
+    "diagnostic-status"
   ].map((id) => [id, document.getElementById(id)])
 );
 
@@ -39,8 +41,13 @@ elements.fill.addEventListener("click", () => runPortalAction("FORM141_FILL"));
 elements["page-map"].addEventListener("click", downloadPageMap);
 elements.download.addEventListener("click", downloadCandidate);
 elements.clear.addEventListener("click", clearState);
+elements["diagnostic-start"].addEventListener("click", startDiagnostics);
+elements["diagnostic-capture"].addEventListener("click", captureDiagnostics);
+elements["diagnostic-stop"].addEventListener("click", stopAndDownloadDiagnostics);
+elements["diagnostic-clear"].addEventListener("click", clearDiagnostics);
 
 await restoreState();
+await refreshDiagnosticStatus();
 
 async function analyze() {
   const file = elements.statement.files?.[0];
@@ -246,6 +253,106 @@ async function downloadPageMap() {
       true
     );
   }
+}
+
+async function startDiagnostics() {
+  try {
+    const result = await api.runtime.sendMessage({
+      type: "FORM141_DIAGNOSTIC_START"
+    });
+    if (!result?.ok) throw new Error(result?.error ?? "Could not start diagnostics.");
+    await captureDiagnostics();
+    await refreshDiagnosticStatus();
+  } catch (error) {
+    setDiagnosticStatus(error.message || String(error), true);
+  }
+}
+
+async function captureDiagnostics() {
+  try {
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !/^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(tab.url ?? "")) {
+      throw new Error("Open the Income Tax portal in the active tab first.");
+    }
+    const result = await api.tabs.sendMessage(tab.id, {
+      type: "FORM141_DIAGNOSTIC_CAPTURE"
+    });
+    if (!result?.ok) throw new Error(result?.error ?? "Could not capture the page.");
+    await refreshDiagnosticStatus();
+  } catch (error) {
+    setDiagnosticStatus(
+      /Receiving end does not exist/i.test(error.message ?? "")
+        ? "Reload the portal tab after installing the extension, then retry."
+        : error.message || String(error),
+      true
+    );
+  }
+}
+
+async function stopAndDownloadDiagnostics() {
+  try {
+    await captureDiagnostics();
+    const result = await api.runtime.sendMessage({
+      type: "FORM141_DIAGNOSTIC_STOP"
+    });
+    if (!result?.ok) throw new Error(result?.error ?? "Could not stop diagnostics.");
+    downloadDiagnosticReport(result.report);
+    await refreshDiagnosticStatus();
+  } catch (error) {
+    setDiagnosticStatus(error.message || String(error), true);
+  }
+}
+
+async function clearDiagnostics() {
+  try {
+    const result = await api.runtime.sendMessage({
+      type: "FORM141_DIAGNOSTIC_CLEAR"
+    });
+    if (!result?.ok) throw new Error(result?.error ?? "Could not clear diagnostics.");
+    await refreshDiagnosticStatus();
+  } catch (error) {
+    setDiagnosticStatus(error.message || String(error), true);
+  }
+}
+
+async function refreshDiagnosticStatus() {
+  try {
+    const result = await api.runtime.sendMessage({
+      type: "FORM141_DIAGNOSTIC_STATUS"
+    });
+    if (!result?.ok) throw new Error(result?.error ?? "Diagnostic status unavailable.");
+    elements["diagnostic-start"].disabled = result.active;
+    elements["diagnostic-capture"].disabled = !result.active;
+    elements["diagnostic-stop"].disabled = !result.active;
+    setDiagnosticStatus(
+      result.active
+        ? `Recording · ${result.records} redacted event(s)`
+        : result.records
+          ? `Stopped · ${result.records} redacted event(s) ready`
+          : "Recorder is stopped."
+    );
+  } catch (error) {
+    setDiagnosticStatus(error.message || String(error), true);
+  }
+}
+
+function downloadDiagnosticReport(report) {
+  const blob = new Blob(
+    [`${JSON.stringify(report, null, 2)}\n`],
+    { type: "application/json" }
+  );
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download =
+    `form-141-diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function setDiagnosticStatus(message, isError = false) {
+  elements["diagnostic-status"].textContent = message;
+  elements["diagnostic-status"].classList.toggle("error", isError);
 }
 
 async function restoreState() {

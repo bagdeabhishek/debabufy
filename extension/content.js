@@ -7,7 +7,29 @@
     globalThis.browser ??
     globalThis.chrome;
 
+  if (typeof globalThis.addEventListener === "function" && typeof location !== "undefined") {
+    globalThis.addEventListener("message", (event) => {
+      if (
+        event.source !== globalThis ||
+        event.origin !== location.origin ||
+        event.data?.source !== "FORM141_DIAGNOSTIC_BRIDGE"
+      ) {
+        return;
+      }
+      sendDiagnosticEvent(event.data.record);
+    });
+  }
+
   api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "FORM141_DIAGNOSTIC_CAPTURE") {
+      capturePageSnapshot("manual")
+        .then(() => sendResponse({ ok: true }))
+        .catch((error) => sendResponse({
+          ok: false,
+          error: error.message || String(error)
+        }));
+      return true;
+    }
     if (message?.type === "FORM141_DIAGNOSTICS") {
       sendResponse(pageDiagnostics());
       return false;
@@ -26,6 +48,71 @@
       }));
     return true;
   });
+
+  let snapshotTimer = null;
+  let lastSnapshotSignature = "";
+  const scheduleSnapshot = (reason) => {
+    clearTimeout(snapshotTimer);
+    snapshotTimer = setTimeout(() => capturePageSnapshot(reason), 600);
+  };
+
+  if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => scheduleSnapshot("dom-content-loaded"),
+        { once: true }
+      );
+    } else {
+      scheduleSnapshot("content-script-loaded");
+    }
+
+    const observeDocument = () => {
+      if (!document.documentElement) return;
+      const observer = new MutationObserver(() => scheduleSnapshot("dom-change"));
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["disabled", "aria-disabled", "aria-expanded", "class"]
+      });
+    };
+    if (document.documentElement) {
+      observeDocument();
+    } else {
+      document.addEventListener("DOMContentLoaded", observeDocument, { once: true });
+    }
+  }
+
+  async function capturePageSnapshot(reason) {
+    if (!document.body) return;
+    const diagnostics = pageDiagnostics();
+    const signature = JSON.stringify({
+      page: diagnostics.page,
+      flow: diagnostics.flow,
+      controls: diagnostics.visibleControls
+    });
+    if (reason !== "manual" && signature === lastSnapshotSignature) return;
+    lastSnapshotSignature = signature;
+    await sendDiagnosticEvent({
+      kind: "page-snapshot",
+      reason,
+      flow: diagnostics.flow,
+      page: diagnostics.page,
+      visibleControls: diagnostics.visibleControls
+    });
+  }
+
+  async function sendDiagnosticEvent(record) {
+    try {
+      return await api.runtime.sendMessage({
+        type: "FORM141_DIAGNOSTIC_EVENT",
+        record
+      });
+    } catch {
+      return null;
+    }
+  }
 
   async function handle(message) {
     if (!/^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(location.href)) {
@@ -292,7 +379,12 @@
       "number",
       0,
       "main",
-      ["valueOfConsideration", "totalSaleConsideration", "propertyValue"]
+      [
+        "considerationValue",
+        "valueOfConsideration",
+        "totalSaleConsideration",
+        "propertyValue"
+      ]
     );
     add(
       "property.stamp_duty_value",

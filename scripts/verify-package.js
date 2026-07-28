@@ -18,7 +18,9 @@ const requiredEntries = [
   "manifest.json",
   "popup.html",
   "popup.js",
+  "background.js",
   "content.js",
+  "diagnostic-bridge.js",
   "icons/icon-16.png",
   "icons/icon-32.png",
   "icons/icon-48.png",
@@ -87,6 +89,18 @@ for (const packageConfig of packages) {
     if (manifest.browser_specific_settings) {
       throw new Error("Chrome package contains Firefox-only manifest settings.");
     }
+    if (
+      manifest.background?.service_worker !== "background.js" ||
+      !manifest.content_scripts?.some(
+        (entry) =>
+          entry.world === "MAIN" &&
+          entry.js?.includes("diagnostic-bridge.js") &&
+          entry.matches?.length === 1 &&
+          entry.matches[0] === "https://eportal.incometax.gov.in/*"
+      )
+    ) {
+      throw new Error("Chrome package is missing its diagnostic recorder wiring.");
+    }
   } else {
     if (manifest.minimum_chrome_version) {
       throw new Error("Firefox package contains a Chrome-only manifest setting.");
@@ -98,6 +112,12 @@ for (const packageConfig of packages) {
       throw new Error(
         "Firefox package must explicitly declare that it collects no data."
       );
+    }
+    if (
+      manifest.background?.scripts?.[0] !== "background.js" ||
+      manifest.content_scripts?.some((entry) => entry.world === "MAIN")
+    ) {
+      throw new Error("Firefox package contains incompatible Chrome wiring.");
     }
   }
 

@@ -6,6 +6,7 @@ Start with the guide that matches what you are trying to do.
 | --- | --- |
 | [Getting started](GETTING_STARTED.md) | You want to install the CLI/extension, verify a build, or perform a safe dry run |
 | [Troubleshooting](TROUBLESHOOTING.md) | CLI/browser launch, analysis, preview, or filling does not behave as expected |
+| [Remote computer-use test](REMOTE_COMPUTER_USE_TEST.md) | You want a desktop agent to exercise the live portal and return a redacted diagnostic report |
 | [Extension guide](../EXTENSION.md) | You want the complete workflow and current implementation boundaries |
 | [Privacy policy](../PRIVACY.md) | You want to understand local processing and in-memory storage |
 | [Security policy](../SECURITY.md) | You need to report a vulnerability or review the hard safety boundaries |

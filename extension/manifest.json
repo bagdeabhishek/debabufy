@@ -22,7 +22,21 @@
     },
     "default_popup": "popup.html"
   },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "content_scripts": [
+    {
+      "matches": [
+        "https://eportal.incometax.gov.in/*"
+      ],
+      "js": [
+        "diagnostic-bridge.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": [
         "https://www.incometax.gov.in/*",
@@ -31,7 +45,7 @@
       "js": [
         "content.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "browser_specific_settings": {

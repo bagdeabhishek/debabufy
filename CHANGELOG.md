@@ -16,6 +16,9 @@ All notable changes will be documented in this file.
 - Added radio-button and Angular/custom dropdown handling.
 - Added a downloadable value-free, pattern-redacted page map for portal selector
   debugging.
+- Added an opt-in, session-only diagnostic recorder for redacted page/control
+  schemas, API key/type paths, status codes, and runtime errors, plus a remote
+  computer-use test runbook.
 - Rejects Form 132 TDS certificates with a clear prompt for the prior Form 141
   challan statement.
 - User-first quick start, synthetic dry-run fixture, troubleshooting, support,

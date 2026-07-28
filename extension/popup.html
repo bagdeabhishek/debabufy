@@ -81,6 +81,23 @@
           <div id="portal-result" class="result hidden"></div>
         </div>
       </section>
+
+      <section class="card" id="diagnostic-card">
+        <div class="step">D</div>
+        <div class="card-body">
+          <h2>Redacted diagnostic session</h2>
+          <p class="helper">Records page/control schemas, Form 141 API endpoint and JSON-key shapes, HTTP status codes, and runtime errors. It never records entered values, headers, cookies, tokens, PANs, amounts, or addresses.</p>
+          <div class="button-row">
+            <button id="diagnostic-start" class="secondary">Start recording</button>
+            <button id="diagnostic-capture" class="ghost">Capture current page</button>
+          </div>
+          <div class="button-row">
+            <button id="diagnostic-stop" class="primary">Stop &amp; download</button>
+            <button id="diagnostic-clear" class="ghost">Clear report</button>
+          </div>
+          <div id="diagnostic-status" class="result">Recorder is stopped.</div>
+        </div>
+      </section>
     </main>
 
     <footer>

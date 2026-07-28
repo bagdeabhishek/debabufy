@@ -29,6 +29,12 @@ references, dates, and monetary values.
   preview or fill on an official Income Tax portal page.
 - The CLI passes the reviewed proposal only to the official portal page opened
   in its Playwright-controlled browser context.
+- The optional diagnostic recorder stores only value-redacted page/control
+  schemas, Income Tax payment-API endpoint paths, JSON key/type paths, HTTP
+  status codes, and redacted runtime errors in extension session memory.
+- Diagnostic recording is opt-in. It never records request or response values,
+  headers, cookies, tokens, PANs, amounts, names, contacts, or addresses. The
+  user must explicitly download or clear the report.
 
 ## Third-party processing
 
