@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "form": "26QB",
+    "acknowledgement_number": "ACK-SYNTHETIC-001",
+    "tax_year": "2026-27"
+  },
+  "buyers": [
+    {
+      "pan": "SYNTHETIC-BUYER-PAN",
+      "name": "SYNTHETIC BUYER",
+      "share_percentage": 100,
+      "email": "buyer@example.invalid",
+      "mobile": "0000000000",
+      "address": "UNIT 10, EXAMPLE BUILDING, EXAMPLE DISTRICT"
+    }
+  ],
+  "sellers": [
+    {
+      "pan": "SYNTHETIC-SELLER-PAN",
+      "name": "SYNTHETIC SELLER",
+      "share_percentage": 100,
+      "email": "seller@example.invalid",
+      "mobile": "0000000000"
+    }
+  ],
+  "property": {
+    "property_type": "BUILDING",
+    "address_text": "UNIT 20, EXAMPLE BUILDING, EXAMPLE DISTRICT, INDIA, 000000",
+    "agreement_date": "2024-06-04",
+    "consideration_value": 1500000,
+    "stamp_duty_value": 1200000
+  },
+  "transaction": {
+    "current_payment_amount": 200000,
+    "payment_date": "2026-06-20",
+    "deduction_date": "2026-06-20",
+    "cumulative_previous_installments": 100000
+  },
+  "tax_deposit": {
+    "rate_percent": 1,
+    "tds_amount": 2000,
+    "interest": 0,
+    "other_fee": 0,
+    "total_amount": 2000
+  },
+  "portal": {
+    "tds26_type": "SCHEDULE_B",
+    "tile_id": 21,
+    "installment_payment_type": "Instalments",
+    "installment_sequence": "Subsequent instalment"
+  },
+  "extraction": {
+    "warnings": [],
+    "detected_fields": [
+      "synthetic_fixture"
+    ]
+  }
+}

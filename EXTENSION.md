@@ -65,9 +65,11 @@ immediately, and the browser clears it on restart.
 ## Build and test
 
 ```bash
-npm install
+npm ci
+npm run check
 npm test
 npm run package
+npm run verify:package
 ```
 
 Outputs:

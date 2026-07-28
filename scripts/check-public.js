@@ -12,6 +12,7 @@ const syntaxFiles = [
   "scripts/build-extension.js",
   "scripts/check-public.js",
   "scripts/extract-pdf-text.js",
+  "scripts/generate-icons.js",
   "scripts/package-extension.js",
   "scripts/verify-package.js",
   "src/lib/infer.js",
@@ -35,9 +36,31 @@ readJson("package-lock.json");
 if (!fs.existsSync(path.join(root, "node_modules/pdfjs-dist/LICENSE"))) {
   errors.push("The bundled PDF.js dependency license is missing.");
 }
-for (const file of ["LICENSE", "PRIVACY.md", "THIRD_PARTY_NOTICES.md"]) {
+for (const file of [
+  "LICENSE",
+  "PRIVACY.md",
+  "THIRD_PARTY_NOTICES.md",
+  "SUPPORT.md",
+  "docs/GETTING_STARTED.md",
+  "docs/TROUBLESHOOTING.md",
+  "examples/synthetic-statement.json"
+]) {
   if (!fs.existsSync(path.join(root, file))) {
     errors.push(`Required release document is missing: ${file}`);
+  }
+}
+for (const size of [16, 32, 48, 128]) {
+  const icon = `extension/icons/icon-${size}.png`;
+  if (!fs.existsSync(path.join(root, icon))) {
+    errors.push(`Required extension icon is missing: ${icon}`);
+  }
+}
+for (const icon of [
+  ...Object.values(manifest.icons ?? {}),
+  ...Object.values(manifest.action?.default_icon ?? {})
+]) {
+  if (!fs.existsSync(path.join(root, "extension", icon))) {
+    errors.push(`Manifest icon does not exist: ${icon}`);
   }
 }
 
@@ -82,6 +105,7 @@ if (!/storage\.session\b/.test(popupSource)) {
 const scanRoots = [
   ".github",
   "docs",
+  "examples",
   "extension",
   "scripts",
   "src",
@@ -112,6 +136,7 @@ for (const file of collectFiles(scanRoots)) {
       errors.push(`${path.relative(root, file)} contains a ${label}.`);
     }
   }
+  if (file.endsWith(".md")) checkMarkdownLinks(file, contents);
 }
 
 if (errors.length) {
@@ -147,4 +172,30 @@ function collectFiles(entries) {
     }
   }
   return files;
+}
+
+function checkMarkdownLinks(file, contents) {
+  const links = contents.matchAll(/!?\[[^\]]*]\(([^)]+)\)/g);
+  for (const match of links) {
+    const rawTarget = match[1].trim().replace(/^<|>$/g, "");
+    if (
+      !rawTarget ||
+      rawTarget.startsWith("#") ||
+      /^[a-z][a-z0-9+.-]*:/i.test(rawTarget)
+    ) {
+      continue;
+    }
+    const targetWithoutFragment = rawTarget.split(/[?#]/, 1)[0];
+    let decodedTarget;
+    try {
+      decodedTarget = decodeURIComponent(targetWithoutFragment);
+    } catch {
+      errors.push(`${path.relative(root, file)} contains an invalid link: ${rawTarget}`);
+      continue;
+    }
+    const resolved = path.resolve(path.dirname(file), decodedTarget);
+    if (!resolved.startsWith(`${root}${path.sep}`) || !fs.existsSync(resolved)) {
+      errors.push(`${path.relative(root, file)} contains a broken link: ${rawTarget}`);
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
-import { parseStatementText } from "../src/lib/statement.js";
+import { normalizeStatementJson, parseStatementText } from "../src/lib/statement.js";
 import { inferNextFiling, validateReviewedFiling } from "../src/lib/infer.js";
 
 const PRIMARY_BUYER_PAN = `${"A".repeat(5)}${"0".repeat(4)}A`;
@@ -87,4 +88,20 @@ test("proposes the next instalment without approving it", () => {
 
   next.review.approved = true;
   assert.deepEqual(validateReviewedFiling(next), []);
+});
+
+test("keeps the documented synthetic dry run in sync", () => {
+  const fixture = normalizeStatementJson(JSON.parse(
+    fs.readFileSync(new URL("../examples/synthetic-statement.json", import.meta.url), "utf8")
+  ));
+  const next = inferNextFiling(fixture, {
+    amount: "500000",
+    paymentDate: "2026-07-28"
+  });
+
+  assert.equal(next.transaction.cumulative_previous_installments, 300_000);
+  assert.equal(next.transaction.current_payment_amount, 500_000);
+  assert.equal(next.tax_deposit.rate_percent, 1);
+  assert.equal(next.tax_deposit.tds_amount, 5_000);
+  assert.equal(next.tax_deposit.total_amount, 5_000);
 });

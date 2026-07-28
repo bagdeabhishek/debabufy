@@ -4,6 +4,9 @@ All notable changes will be documented in this file.
 
 ## [Unreleased]
 
+- User-first quick start, synthetic dry-run fixture, troubleshooting, support,
+  and pull-request guidance.
+- Branded extension icons and explicit minimum browser versions.
 - Public-facing documentation and privacy/security policies.
 - In-memory-only proposal storage with no local-storage fallback.
 - Reduced extension permissions by removing runtime scripting and redundant
