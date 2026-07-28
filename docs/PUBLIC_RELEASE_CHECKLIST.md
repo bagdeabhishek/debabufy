@@ -37,13 +37,18 @@ browser-store package.
 - [ ] Run `npm audit --omit=dev`.
 - [ ] Run `npm run package`.
 - [ ] Run `npm run verify:package`.
-- [ ] Inspect `dist/tds-26qb-assistant.zip`.
-- [ ] Verify `dist/tds-26qb-assistant.zip.sha256`.
-- [ ] Confirm the ZIP includes `LICENSE`, `PRIVACY.md`,
+- [ ] Inspect `dist/tds-26qb-assistant-chrome.zip`.
+- [ ] Inspect `dist/tds-26qb-assistant-firefox.zip`.
+- [ ] Verify both `.zip.sha256` files.
+- [ ] Confirm both ZIPs include `LICENSE`, `PRIVACY.md`,
       `THIRD_PARTY_NOTICES.md`, and `vendor/PDFJS_LICENSE`.
-- [ ] Confirm the ZIP contains no source statement, HAR, browser profile, build
-      cache, or dependency directory.
-- [ ] Confirm a merge to `main` uploads the ZIP and checksum artifact.
+- [ ] Confirm neither ZIP contains a source statement, HAR, browser profile,
+      build cache, or dependency directory.
+- [ ] Confirm the Chrome manifest excludes Firefox-only settings.
+- [ ] Confirm the Firefox manifest excludes Chrome-only settings and declares
+      no data collection.
+- [ ] Confirm a push to `main` uploads separate Chrome and Firefox artifacts.
+- [ ] Confirm the push creates a GitHub prerelease with both ZIPs and checksums.
 
 ## Store listing
 

@@ -46,7 +46,7 @@ npm run build
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**, select **Load unpacked**, and choose
-   `dist/extension`.
+   `dist/chrome`.
 3. Open the extension from the browser toolbar.
 4. Choose `examples/synthetic-statement.json`.
 5. Enter `500000` as the current amount and select a date.
@@ -78,7 +78,7 @@ npm run build
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
-4. Choose `dist/extension`.
+4. Choose `dist/chrome`.
 5. Pin **26QB Next Instalment Assistant**.
 6. Reload any Income Tax portal tab that was already open.
 
@@ -86,22 +86,32 @@ npm run build
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. Select **Load Temporary Add-on**.
-3. Choose `dist/extension/manifest.json`.
+3. Choose `dist/firefox/manifest.json`.
 
 Firefox removes a temporary extension when the browser restarts.
 
-### Download a verified CI build
+### Download a verified main build
 
-Every merge to `main` creates a ZIP and SHA-256 checksum retained for 30 days.
-You must be signed in to GitHub to download workflow artifacts.
+Every successful push to `main` creates an automated GitHub prerelease with
+four assets:
 
-1. Open the latest successful
-   [CI run for `main`](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush).
-2. Download the `tds-26qb-assistant-main-*` artifact.
-3. Extract the downloaded artifact, then verify
-   `tds-26qb-assistant.zip.sha256`.
-4. Extract `tds-26qb-assistant.zip` and load the extracted directory as an
-   unpacked/temporary extension using the browser steps above.
+- `tds-26qb-assistant-chrome.zip`
+- `tds-26qb-assistant-chrome.zip.sha256`
+- `tds-26qb-assistant-firefox.zip`
+- `tds-26qb-assistant-firefox.zip.sha256`
+
+Open [Releases](https://github.com/bagdeabhishek/tds-26qb-assistant/releases),
+choose the newest `Main build #…` prerelease, and download the package for your
+browser. Verify its checksum before use.
+
+The same packages are also available as separate Chrome and Firefox workflow
+artifacts on the corresponding
+[successful `main` run](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
+for 30 days. GitHub requires sign-in to download workflow artifacts.
+
+The ZIPs are unsigned deployment packages: upload the Chrome ZIP to the Chrome
+Web Store or the Firefox ZIP to AMO. For local testing, extract the chosen ZIP
+and load its root directory/manifest using the browser steps above.
 
 See [Getting started](docs/GETTING_STARTED.md) for checksum commands and a
 careful first live-test procedure.
@@ -190,9 +200,12 @@ npm audit --omit=dev
 
 Outputs:
 
-- unpacked extension: `dist/extension`
-- ZIP package: `dist/tds-26qb-assistant.zip`
-- SHA-256 checksum: `dist/tds-26qb-assistant.zip.sha256`
+- unpacked Chrome extension: `dist/chrome`
+- unpacked Firefox extension: `dist/firefox`
+- Chrome deployment package and checksum:
+  `dist/tds-26qb-assistant-chrome.zip` and `.zip.sha256`
+- Firefox deployment package and checksum:
+  `dist/tds-26qb-assistant-firefox.zip` and `.zip.sha256`
 
 Important source areas:
 

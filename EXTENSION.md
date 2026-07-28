@@ -13,14 +13,14 @@ creates a challan, submits the form, or authorizes payment.
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select the `dist/extension` directory.
+4. Select the `dist/chrome` directory.
 5. Pin **26QB Next Instalment Assistant**.
 
 ## Install temporarily in Firefox
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. Click **Load Temporary Add-on**.
-3. Select `dist/extension/manifest.json`.
+3. Select `dist/firefox/manifest.json`.
 
 Firefox removes temporary extensions when it restarts. A signed permanent
 Firefox package can be produced after the selector behavior has been proven on
@@ -74,12 +74,16 @@ npm run verify:package
 
 Outputs:
 
-- unpacked extension: `dist/extension`
-- ZIP package: `dist/tds-26qb-assistant.zip`
-- SHA-256 checksum: `dist/tds-26qb-assistant.zip.sha256`
+- unpacked Chrome extension: `dist/chrome`
+- unpacked Firefox extension: `dist/firefox`
+- Chrome deployment ZIP and checksum:
+  `dist/tds-26qb-assistant-chrome.zip` and `.zip.sha256`
+- Firefox deployment ZIP and checksum:
+  `dist/tds-26qb-assistant-firefox.zip` and `.zip.sha256`
 
-Successful pushes to `main` also upload the ZIP and checksum as a GitHub Actions
-artifact retained for 30 days.
+Successful pushes to `main` upload separate Chrome and Firefox workflow
+artifacts retained for 30 days and publish both packages on an automated GitHub
+prerelease.
 
 ## Next live-test loop
 

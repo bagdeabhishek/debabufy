@@ -42,6 +42,7 @@ for (const file of [
   "THIRD_PARTY_NOTICES.md",
   "SUPPORT.md",
   "docs/GETTING_STARTED.md",
+  "docs/RELEASING.md",
   "docs/TROUBLESHOOTING.md",
   "examples/synthetic-statement.json"
 ]) {

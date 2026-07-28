@@ -38,7 +38,7 @@ body:
     attributes:
       label: Extension version
       description: Provide the version, commit, or CI artifact name.
-      placeholder: "0.1.0, commit abc1234, or tds-26qb-assistant-main-*"
+      placeholder: "0.1.0, commit abc1234, or main-build-42"
     validations:
       required: true
 

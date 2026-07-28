@@ -27,6 +27,7 @@
     "check": "node scripts/check-public.js",
     "generate:icons": "node scripts/generate-icons.js",
     "inspect:pdf": "node scripts/extract-pdf-text.js",
+    "lint:firefox": "npx --yes web-ext@10.5.0 lint --source-dir dist/firefox --output text",
     "package": "npm run build && node scripts/package-extension.js",
     "test": "node --test",
     "verify:package": "node scripts/verify-package.js"

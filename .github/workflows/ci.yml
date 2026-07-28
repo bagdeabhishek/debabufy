@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   test:
+    name: Test and package
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -32,23 +33,82 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Package extension
+      - name: Package browser extensions
         run: npm run package
 
-      - name: Verify extension package
+      - name: Verify browser packages
         run: npm run verify:package
+
+      - name: Lint Firefox package
+        run: npm run lint:firefox
 
       - name: Audit production dependencies
         run: npm audit --omit=dev
 
-      - name: Upload main-branch extension artifact
+      - name: Upload Chrome deployment artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v7
         with:
-          name: tds-26qb-assistant-main-${{ github.run_number }}-${{ github.sha }}
+          name: tds-26qb-assistant-chrome-main-${{ github.run_number }}-${{ github.sha }}
           path: |
-            dist/tds-26qb-assistant.zip
-            dist/tds-26qb-assistant.zip.sha256
+            dist/tds-26qb-assistant-chrome.zip
+            dist/tds-26qb-assistant-chrome.zip.sha256
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
+
+      - name: Upload Firefox deployment artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tds-26qb-assistant-firefox-main-${{ github.run_number }}-${{ github.sha }}
+          path: |
+            dist/tds-26qb-assistant-firefox.zip
+            dist/tds-26qb-assistant-firefox.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  release:
+    name: Publish main prerelease
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Chrome deployment artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: tds-26qb-assistant-chrome-main-${{ github.run_number }}-${{ github.sha }}
+          path: release-assets
+
+      - name: Download Firefox deployment artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: tds-26qb-assistant-firefox-main-${{ github.run_number }}-${{ github.sha }}
+          path: release-assets
+
+      - name: Verify downloaded checksums
+        working-directory: release-assets
+        run: |
+          sha256sum -c tds-26qb-assistant-chrome.zip.sha256
+          sha256sum -c tds-26qb-assistant-firefox.zip.sha256
+
+      - name: Create GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="main-build-${GITHUB_RUN_NUMBER}"
+          if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${tag}" release-assets/* --clobber --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create "${tag}" release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${GITHUB_SHA}" \
+              --title "Main build #${GITHUB_RUN_NUMBER}" \
+              --notes "Automated prerelease for main commit ${GITHUB_SHA}. Includes unsigned Chrome Web Store and Firefox AMO upload packages plus SHA-256 checksums." \
+              --prerelease
+          fi
