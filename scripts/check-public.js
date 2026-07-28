@@ -33,6 +33,13 @@ for (const file of syntaxFiles) {
 const manifest = readJson("extension/manifest.json");
 readJson("package.json");
 readJson("package-lock.json");
+if (
+  manifest.browser_specific_settings?.gecko?.strict_min_version !== "115.0"
+) {
+  errors.push(
+    "Firefox strict_min_version must match the storage.session compatibility floor (115.0)."
+  );
+}
 if (!fs.existsSync(path.join(root, "node_modules/pdfjs-dist/LICENSE"))) {
   errors.push("The bundled PDF.js dependency license is missing.");
 }

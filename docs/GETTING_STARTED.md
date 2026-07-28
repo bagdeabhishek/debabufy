@@ -6,7 +6,7 @@ browser store.
 
 ## What you need
 
-- Chrome/Chromium 102 or newer, or Firefox 142 or newer;
+- Chrome/Chromium 102 or newer, or Firefox 115 or newer;
 - Node.js 22.13 or newer and npm if building from source;
 - the previous Form 26QB challan statement for a real filing; and
 - the amount paid or credited in the new instalment.

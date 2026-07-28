@@ -11,7 +11,7 @@ restarts. Load `manifest.json` again from
 
 ## The popup says in-memory session storage is unavailable
 
-Use Chrome/Chromium 102 or newer or Firefox 142 or newer. The project does not
+Use Chrome/Chromium 102 or newer or Firefox 115 or newer. The project does not
 fall back to persistent disk storage because the filing proposal can contain
 sensitive data.
 
