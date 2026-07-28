@@ -27,13 +27,19 @@ screenshot.
 
 ## Security boundaries
 
-The extension must not:
+The CLI and extension must not:
 
 - collect telemetry or send filing data to a remote service;
-- persist filing data to disk;
+- persist the parsed filing proposal to disk unless the user explicitly exports
+  it;
 - access cookies, browsing history, downloads, or unrelated sites;
 - automate credentials, CAPTCHA, OTP, QR, UPI, or bank authorization;
 - click navigation, submission, challan creation, or payment controls; or
 - bypass portal authentication, validation, or anti-automation mechanisms.
+
+The CLI deliberately uses a separate persistent browser profile so the user can
+complete portal login. That directory may contain authentication/session data:
+do not share or back it up, and delete it when persistence is no longer wanted.
+The CLI must never target the user's ordinary Chrome/Edge profile.
 
 Changes affecting these boundaries require explicit security and privacy review.

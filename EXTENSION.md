@@ -1,9 +1,9 @@
-# 26QB Next Instalment Assistant
+# Form 141 Schedule B Next Instalment Assistant
 
 This is a local Manifest V3 extension for Chrome and Firefox. It reads the
-previous Form 26QB challan statement, asks for the current payment amount and
-date, proposes the next instalment, and fills matching fields on the currently
-open Income Tax portal page.
+previous Form 141 Schedule B challan statement, asks for the current payment
+amount and date, proposes the next instalment, and fills matching fields on the
+current Schedule B page or open Add Details dialog.
 
 It never uploads the statement, stores portal credentials, clicks Continue,
 creates a challan, submits the form, or authorizes payment.
@@ -14,7 +14,7 @@ creates a challan, submits the form, or authorizes payment.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
 4. Select the `dist/chrome` directory.
-5. Pin **26QB Next Instalment Assistant**.
+5. Pin **Form 141 Schedule B Assistant**.
 
 ## Install temporarily in Firefox
 
@@ -40,10 +40,10 @@ the live form.
    - payment and deduction dates;
    - rate, TDS, interest, fee, and total.
 7. Check the review confirmation.
-8. Navigate to the relevant Form 26QB page.
+8. Navigate to the Form 141 Schedule B transaction page.
 9. Use **Preview matches** before **Fill blank fields**.
-10. Continue through the portal manually, reopening the extension on each page
-    that needs filling.
+10. Open each Buyer, Seller, or Transaction **Add Details** dialog and rerun
+    Preview/Fill. Review and save each row yourself.
 
 The reviewed proposal is held only in in-memory browser session storage for at
 most two hours so it survives portal navigation. **Clear** removes it
@@ -51,13 +51,18 @@ immediately, and the browser clears it on restart.
 
 ## Current safety and implementation boundaries
 
-- Autofill is label-based and only changes visible input, textarea, and native
-  select controls.
-- Angular/custom dropdowns are reported as matched but remain manual in this MVP.
+- Autofill is label-based and only changes visible controls on the current page
+  or dialog.
+- Native and Angular dropdown options are matched locally. Unmatched custom
+  controls are reported for manual selection.
+- Form 141 table rows require the user to open the relevant Add Details dialog.
+- A combined property address is left manual because the previous statement
+  does not reliably preserve the portal's individual address fields.
 - Existing values are skipped unless **Overwrite fields that already contain
   values** is explicitly enabled.
 - The content script is restricted to `www.incometax.gov.in` and
   `eportal.incometax.gov.in`.
+- No Add, Save, Continue, submission, or payment buttons are queried or clicked.
 - No submission or payment buttons are queried or clicked.
 - In-memory browser-session storage is required; there is no disk-backed storage
   fallback.
@@ -90,5 +95,5 @@ prerelease.
 The statement parser is covered by a synthetic fixture matching the observed
 three-page challan layout. Portal field selectors cannot be fully verified
 without a live, authenticated form page. Use **Preview matches** on each Form
-26QB step; the result counts show which page labels need a selector alias. Never
+Form 141 section; the result counts show which page labels need a selector alias. Never
 include real statements, PANs, contact details, or payment data in an issue.

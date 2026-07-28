@@ -1,18 +1,36 @@
 # Getting started
 
-This guide covers a safe installation, a synthetic dry run, and the first live
-test. The extension is alpha software and is not yet distributed through a
-browser store.
+This guide covers safe CLI/extension installation, a synthetic dry run, and the
+first live test. The project is alpha software.
 
 ## What you need
 
-- Chrome/Chromium 102 or newer, or Firefox 115 or newer;
+- installed Google Chrome or Microsoft Edge for the CLI; Chrome/Chromium 102+
+  or Firefox 115+ for the optional extension;
 - Node.js 22.13 or newer and npm if building from source;
-- the previous Form 26QB challan statement for a real filing; and
+- the previous Form 141 Schedule B challan statement for a real filing; and
 - the amount paid or credited in the new instalment.
 
-The extension does not log in, solve a CAPTCHA, request an OTP, navigate,
-submit, create a challan, or authorize payment.
+The assistant does not enter credentials, solve a CAPTCHA, request an OTP,
+submit, create a challan/payment, or authorize payment.
+
+## Run the CLI
+
+From a source checkout:
+
+```bash
+npm ci
+npm run cli -- \
+  --statement examples/synthetic-statement.json \
+  --amount 500000 \
+  --date 2026-07-28 \
+  --dry-run
+```
+
+Remove `--dry-run` and use the previous Form 141 challan statement for a live
+run. After explicit review, the CLI opens a separate persistent Chrome profile.
+You handle login and open each Schedule B section/dialog; the CLI fills only the
+current view and never clicks Add, Save, Continue, Submit, or Pay.
 
 ## Option A: build from source
 
@@ -29,12 +47,12 @@ The unpacked extensions are now in `dist/chrome` and `dist/firefox`.
 
 ## Option B: use an automated main build
 
-Every successful push to `main` creates a GitHub prerelease containing the
-browser-targeted packages and checksums.
+Every successful push to `main` creates a GitHub prerelease containing the CLI,
+browser-targeted packages, and checksums.
 
 1. Open [Releases](https://github.com/bagdeabhishek/tds-26qb-assistant/releases).
 2. Choose the newest `Main build #…` prerelease.
-3. Download the Chrome or Firefox ZIP and its matching `.sha256` file.
+3. Download the CLI archive or a browser ZIP and its matching checksum.
 4. Verify the checksum before extracting the extension package.
 
 Linux or macOS:
@@ -42,6 +60,7 @@ Linux or macOS:
 ```bash
 sha256sum -c tds-26qb-assistant-chrome.zip.sha256
 sha256sum -c tds-26qb-assistant-firefox.zip.sha256
+sha256sum -c form141-assistant-cli.tgz.sha256
 ```
 
 PowerShell example for Chrome:
@@ -55,7 +74,7 @@ $actual -eq $expected
 The PowerShell command should return `True`; `sha256sum` should report `OK`.
 Extract the browser ZIP before loading it locally.
 
-The same files are uploaded as separate Chrome and Firefox artifacts on the
+The same files are uploaded as separate CLI, Chrome, and Firefox artifacts on the
 corresponding
 [main-branch CI run](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
 and retained for 30 days. GitHub requires sign-in for workflow-artifact
@@ -70,7 +89,7 @@ downloads.
 3. Select **Load unpacked**.
 4. Choose `dist/chrome` if you built from source, or the extracted Chrome
    package if you downloaded a main build.
-5. Pin **26QB Next Instalment Assistant** from the extensions menu.
+5. Pin **Form 141 Schedule B Assistant** from the extensions menu.
 
 If an Income Tax portal tab was open during installation, reload it before
 using preview or fill.
@@ -114,13 +133,15 @@ Use a fresh browser profile if practical.
 4. Select **Analyze locally**.
 5. Compare every proposed value with the statement and your intended filing.
 6. Correct any value in the complete JSON before confirming the review.
-7. Navigate manually to the relevant Form 26QB page.
+7. Navigate manually to the Form 141 Schedule B transaction page.
 8. Leave overwrite disabled.
 9. Select **Preview matches** and inspect the counts and unresolved field paths.
 10. Only if preview is correct, select **Fill blank fields**.
-11. Review every visible portal value after filling.
-12. Continue, submit, and pay manually.
-13. Select **Clear** when finished.
+11. Open each Buyer, Seller, or Transaction **Add Details** dialog and repeat
+    Preview/Fill. Review and save each row yourself.
+12. Review every visible portal value after filling.
+13. Continue, submit, and pay manually.
+14. Select **Clear** when finished.
 
 Stop if the previous statement is marked as a last instalment, the carried tax
 year looks wrong, shares do not total 100%, the proposed rate differs from what

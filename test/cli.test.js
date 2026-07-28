@@ -1,0 +1,34 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { localDate, parseCliArgs } from "../src/cli/args.js";
+
+test("parses statement CLI arguments", () => {
+  const result = parseCliArgs([
+    "--statement", "previous.pdf",
+    "--amount", "500000",
+    "--date", "2026-07-28",
+    "--browser", "msedge",
+    "--dry-run"
+  ]);
+  assert.match(result.statement, /previous\.pdf$/);
+  assert.equal(result.amount, "500000");
+  assert.equal(result.date, "2026-07-28");
+  assert.equal(result.browser, "msedge");
+  assert.equal(result.dryRun, true);
+});
+
+test("requires one input source and an amount for statements", () => {
+  assert.throws(() => parseCliArgs([]), /exactly one/);
+  assert.throws(
+    () => parseCliArgs(["--statement", "previous.pdf"]),
+    /--amount is required/
+  );
+  assert.throws(
+    () => parseCliArgs(["--candidate", "candidate.json", "--statement", "previous.pdf", "--amount", "1"]),
+    /exactly one/
+  );
+});
+
+test("formats the local default date", () => {
+  assert.equal(localDate(new Date("2026-07-28T12:00:00.000Z")), "2026-07-28");
+});

@@ -1,6 +1,7 @@
 # Contributing
 
-Thanks for helping make recurring Form 26QB preparation safer and less tedious.
+Thanks for helping make recurring Form 141 Schedule B preparation safer and
+less tedious.
 
 ## Never share real filing data
 

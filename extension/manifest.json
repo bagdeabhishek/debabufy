@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "26QB Next Instalment Assistant",
-  "version": "0.1.0",
-  "description": "Unofficial, local-only assistant for reviewing and filling recurring Form 26QB instalments.",
+  "name": "Form 141 Schedule B Assistant",
+  "version": "0.2.0",
+  "description": "Local-only assistant for recurring Form 141 Schedule B property-TDS instalments (formerly Form 26QB).",
   "minimum_chrome_version": "102",
   "icons": {
     "16": "icons/icon-16.png",
@@ -15,7 +15,7 @@
     "storage"
   ],
   "action": {
-    "default_title": "26QB Next Instalment Assistant",
+    "default_title": "Form 141 Schedule B Assistant",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png"

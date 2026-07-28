@@ -11,13 +11,13 @@ const elements = Object.fromEntries(
     "statement", "file-label", "amount", "payment-date", "analyze", "review-card",
     "portal-card", "warnings", "summary", "party-count", "candidate-json",
     "approved", "overwrite", "preview", "fill", "download", "clear",
-    "portal-result", "status"
+    "page-map", "portal-result", "status"
   ].map((id) => [id, document.getElementById(id)])
 );
 
 let candidate = null;
 const storageArea = api.storage.session;
-const STORAGE_KEY = "tds26qbEphemeralCandidate";
+const STORAGE_KEY = "form141ScheduleBEphemeralCandidate";
 
 if (!storageArea) {
   throw new Error("This browser does not support in-memory extension session storage.");
@@ -34,8 +34,9 @@ elements.statement.addEventListener("change", () => {
 
 elements.analyze.addEventListener("click", analyze);
 elements.approved.addEventListener("change", updateApproval);
-elements.preview.addEventListener("click", () => runPortalAction("TDS26QB_PREVIEW"));
-elements.fill.addEventListener("click", () => runPortalAction("TDS26QB_FILL"));
+elements.preview.addEventListener("click", () => runPortalAction("FORM141_PREVIEW"));
+elements.fill.addEventListener("click", () => runPortalAction("FORM141_FILL"));
+elements["page-map"].addEventListener("click", downloadPageMap);
 elements.download.addEventListener("click", downloadCandidate);
 elements.clear.addEventListener("click", clearState);
 
@@ -152,7 +153,7 @@ async function runPortalAction(type) {
 
     const [tab] = await api.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id || !/^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(tab.url ?? "")) {
-      throw new Error("Open the Income Tax portal Form 26QB page in the active tab first.");
+      throw new Error("Open the Income Tax portal Form 141 Schedule B page in the active tab first.");
     }
 
     let result;
@@ -173,16 +174,30 @@ async function runPortalAction(type) {
 
 function formatResult(result) {
   if (!result) return "No response from the portal page.";
-  const action = result.mode === "preview" ? "Matched" : "Filled";
+  if (!result.ok) return result.error ?? "The portal page could not be analyzed.";
+  const isPreview = result.mode === "preview";
+  const action = isPreview
+    ? `Found ${result.matched ?? 0} of ${result.relevant ?? 0} relevant field(s)`
+    : `Filled ${result.filled ?? 0} field(s)`;
   const unresolved = (result.details ?? [])
     .filter((detail) => ["missing", "unsupported"].includes(detail.outcome))
     .map((detail) => detail.path);
   const unresolvedText = unresolved.length
     ? ` Unresolved: ${unresolved.slice(0, 6).join(", ")}${unresolved.length > 6 ? "…" : ""}.`
     : "";
-  return `${action} ${result.matched ?? 0} field(s). ` +
-    `${result.skipped ?? 0} already populated; ${result.missing ?? 0} not found on this page. ` +
-    `No navigation, submission, or payment action was taken.${unresolvedText}`;
+  const fillText = isPreview
+    ? ""
+    : ` ${result.skipped ?? 0} already populated; ${result.unsupported ?? 0} need manual control selection;`;
+  const deferredText = result.deferred
+    ? ` ${result.deferred} filing field(s) belong to other sections or dialogs.`
+    : "";
+  const noteText = result.note ? ` ${result.note}` : "";
+  return `${action} on ${result.page ?? "the current portal page"}.` +
+    `${fillText} ${result.missing ?? 0} relevant field(s) not found.` +
+    deferredText +
+    ` No Continue, Add, Save, submission, or payment action was taken.` +
+    noteText +
+    unresolvedText;
 }
 
 function downloadCandidate() {
@@ -197,6 +212,39 @@ function downloadCandidate() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     setStatus(`Invalid JSON: ${error.message}`, true);
+  }
+}
+
+async function downloadPageMap() {
+  try {
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !/^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(tab.url ?? "")) {
+      throw new Error("Open the Income Tax portal Form 141 page in the active tab first.");
+    }
+    const diagnostics = await api.tabs.sendMessage(tab.id, {
+      type: "FORM141_DIAGNOSTICS"
+    });
+    if (!diagnostics?.ok) throw new Error("Could not inspect the current portal page.");
+    const blob = new Blob(
+      [`${JSON.stringify(diagnostics, null, 2)}\n`],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `form-141-page-map-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showPortalResult(
+      "Downloaded a value-free page map containing control labels and identifiers, never entered values. Review it before sharing."
+    );
+  } catch (error) {
+    showPortalResult(
+      error.message === "Could not establish connection. Receiving end does not exist."
+        ? "Reload the Income Tax portal tab, then try the page map again."
+        : error.message || String(error),
+      true
+    );
   }
 }
 

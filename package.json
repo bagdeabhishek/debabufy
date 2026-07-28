@@ -1,11 +1,11 @@
 {
   "name": "tds-26qb-assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Unofficial, local-only browser extension for reviewing and filling recurring Form 26QB instalments",
+  "description": "Unofficial, local-only CLI and browser assistant for recurring Form 141 Schedule B property-TDS instalments",
   "type": "module",
   "license": "MIT",
-  "author": "26QB Next Instalment Assistant contributors",
+  "author": "Form 141 Schedule B Assistant contributors",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bagdeabhishek/tds-26qb-assistant.git"
@@ -14,9 +14,23 @@
     "url": "https://github.com/bagdeabhishek/tds-26qb-assistant/issues"
   },
   "homepage": "https://github.com/bagdeabhishek/tds-26qb-assistant#readme",
+  "bin": {
+    "form141-assistant": "bin/form141-assistant.js"
+  },
+  "files": [
+    "bin",
+    "extension/content.js",
+    "src/cli",
+    "src/lib",
+    "LICENSE",
+    "PRIVACY.md",
+    "README.md",
+    "SECURITY.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "keywords": [
     "browser-extension",
-    "form-26qb",
+    "form-141",
     "income-tax",
     "manifest-v3",
     "privacy",
@@ -25,15 +39,19 @@
   "scripts": {
     "build": "npm run generate:icons && node scripts/build-extension.js",
     "check": "node scripts/check-public.js",
+    "cli": "node bin/form141-assistant.js",
     "generate:icons": "node scripts/generate-icons.js",
     "inspect:pdf": "node scripts/extract-pdf-text.js",
     "lint:firefox": "npx --yes web-ext@10.5.0 lint --source-dir dist/firefox --output text",
-    "package": "npm run build && node scripts/package-extension.js",
+    "package": "npm run package:browser && npm run package:cli",
+    "package:browser": "npm run build && node scripts/package-extension.js",
+    "package:cli": "node scripts/package-cli.js",
     "test": "node --test",
-    "verify:package": "node scripts/verify-package.js"
+    "verify:package": "node scripts/verify-package.js && node scripts/verify-cli-package.js"
   },
   "dependencies": {
-    "pdfjs-dist": "^6.1.200"
+    "pdfjs-dist": "^6.1.200",
+    "playwright-core": "^1.62.0"
   },
   "engines": {
     "node": ">=22.13.0"

@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>26QB assistant</title>
+    <title>Form 141 Schedule B assistant</title>
     <link rel="stylesheet" href="popup.css">
   </head>
   <body>
     <header>
-      <div class="eyebrow">FORM 26QB</div>
+      <div class="eyebrow">FORM 141 · SCHEDULE B</div>
       <h1>Next instalment</h1>
       <p>Previous statement in, reviewed portal fields out.</p>
     </header>
@@ -67,8 +67,8 @@
       <section class="card hidden" id="portal-card">
         <div class="step">3</div>
         <div class="card-body">
-          <h2>Fill current portal page</h2>
-          <p class="helper">Open the relevant 26QB step in the active tab. Preview first; filling never clicks Continue, Submit, or Pay.</p>
+          <h2>Fill current portal section</h2>
+          <p class="helper">On Form 141, fill the main Schedule B page, then open each Buyer, Seller, or Transaction “Add Details” dialog and run Preview/Fill again. Filling never clicks Add, Save, Continue, Submit, or Pay.</p>
           <label class="confirm compact">
             <input id="overwrite" type="checkbox">
             <span>Overwrite fields that already contain values</span>
@@ -77,6 +77,7 @@
             <button id="preview" class="secondary" disabled>Preview matches</button>
             <button id="fill" class="primary" disabled>Fill blank fields</button>
           </div>
+          <button id="page-map" class="ghost diagnostic">Download value-free page map</button>
           <div id="portal-result" class="result hidden"></div>
         </div>
       </section>

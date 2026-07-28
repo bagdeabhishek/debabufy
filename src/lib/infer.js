@@ -17,6 +17,16 @@ function roundRupees(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
 
+function monthOfDeduction(value) {
+  const match = String(value ?? "").match(/^(\d{4})-(\d{2})-\d{2}$/);
+  if (!match) return null;
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+  return `${months[Number(match[2]) - 1]}-${match[1]}`;
+}
+
 function asFiniteNumber(value, label) {
   const parsed = typeof value === "number" ? value : Number(String(value).replace(/[₹,\s]/g, ""));
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -104,7 +114,9 @@ export function inferNextFiling(previousInput, options) {
   const candidate = clone(previous);
   candidate.meta = {
     ...candidate.meta,
-    form: "26QB",
+    form: /^2026(?:-27)?$/.test(String(candidate.meta?.tax_year ?? ""))
+      ? "141-SCHEDULE-B"
+      : candidate.meta?.form ?? "26QB",
     previous_acknowledgement_number: previous.meta?.acknowledgement_number ?? null,
     acknowledgement_number: null,
     source_format: "inferred-next-filing"
@@ -114,6 +126,13 @@ export function inferNextFiling(previousInput, options) {
     tile_id: 21,
     ...(candidate.portal ?? {})
   };
+  if (candidate.meta.form === "141-SCHEDULE-B") {
+    candidate.portal.form_flow = "FORM_141_SCHEDULE_B";
+    candidate.portal.month_of_deduction = monthOfDeduction(paymentDate);
+    candidate.portal.nature_transaction = "Schedule B";
+    candidate.portal.deductee_type =
+      candidate.portal.property_type_label ?? null;
+  }
   delete candidate.extraction;
 
   const decisions = [];
@@ -230,7 +249,9 @@ export function inferNextFiling(previousInput, options) {
 export function validateReviewedFiling(filing) {
   const errors = [];
   if (!filing || typeof filing !== "object") return ["Filing data is missing."];
-  if (filing.meta?.form !== "26QB") errors.push("Only Form 26QB is supported.");
+  if (!["141-SCHEDULE-B", "26QB"].includes(filing.meta?.form)) {
+    errors.push("Only Form 141 Schedule B (formerly Form 26QB) is supported.");
+  }
   if (!filing.buyers?.length) errors.push("At least one buyer is required.");
   if (!filing.sellers?.length) errors.push("At least one seller is required.");
   if (!(Number(filing.transaction?.current_payment_amount) > 0)) {
@@ -256,5 +277,6 @@ export const inferenceInternals = {
   deriveRate,
   derivePreviousCumulative,
   flatten,
+  monthOfDeduction,
   roundRupees
 };

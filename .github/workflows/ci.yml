@@ -69,6 +69,18 @@ jobs:
           retention-days: 30
           compression-level: 0
 
+      - name: Upload CLI deployment artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7
+        with:
+          name: form141-assistant-cli-main-${{ github.run_number }}-${{ github.sha }}
+          path: |
+            dist/form141-assistant-cli.tgz
+            dist/form141-assistant-cli.tgz.sha256
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
   release:
     name: Publish main prerelease
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -91,11 +103,18 @@ jobs:
           name: tds-26qb-assistant-firefox-main-${{ github.run_number }}-${{ github.sha }}
           path: release-assets
 
+      - name: Download CLI deployment artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: form141-assistant-cli-main-${{ github.run_number }}-${{ github.sha }}
+          path: release-assets
+
       - name: Verify downloaded checksums
         working-directory: release-assets
         run: |
           sha256sum -c tds-26qb-assistant-chrome.zip.sha256
           sha256sum -c tds-26qb-assistant-firefox.zip.sha256
+          sha256sum -c form141-assistant-cli.tgz.sha256
 
       - name: Create GitHub prerelease
         env:
@@ -109,6 +128,6 @@ jobs:
               --repo "${GITHUB_REPOSITORY}" \
               --target "${GITHUB_SHA}" \
               --title "Main build #${GITHUB_RUN_NUMBER}" \
-              --notes "Automated prerelease for main commit ${GITHUB_SHA}. Includes unsigned Chrome Web Store and Firefox AMO upload packages plus SHA-256 checksums." \
+              --notes "Automated prerelease for main commit ${GITHUB_SHA}. Includes the Form 141 CLI, unsigned browser packages, and SHA-256 checksums." \
               --prerelease
           fi

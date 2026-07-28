@@ -4,8 +4,8 @@ Start with the guide that matches what you are trying to do.
 
 | Guide | Use it when |
 | --- | --- |
-| [Getting started](GETTING_STARTED.md) | You want to install the extension, verify a build, or perform a safe dry run |
-| [Troubleshooting](TROUBLESHOOTING.md) | Analysis, preview, filling, or temporary installation does not behave as expected |
+| [Getting started](GETTING_STARTED.md) | You want to install the CLI/extension, verify a build, or perform a safe dry run |
+| [Troubleshooting](TROUBLESHOOTING.md) | CLI/browser launch, analysis, preview, or filling does not behave as expected |
 | [Extension guide](../EXTENSION.md) | You want the complete workflow and current implementation boundaries |
 | [Privacy policy](../PRIVACY.md) | You want to understand local processing and in-memory storage |
 | [Security policy](../SECURITY.md) | You need to report a vulnerability or review the hard safety boundaries |

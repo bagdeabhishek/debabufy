@@ -9,15 +9,21 @@ const root = process.cwd();
 const syntaxFiles = [
   "extension/content.js",
   "extension/popup.js",
+  "bin/form141-assistant.js",
   "scripts/build-extension.js",
   "scripts/check-public.js",
   "scripts/extract-pdf-text.js",
   "scripts/generate-icons.js",
   "scripts/package-extension.js",
+  "scripts/package-cli.js",
+  "scripts/verify-cli-package.js",
   "scripts/verify-package.js",
   "src/lib/infer.js",
   "src/lib/pdf.js",
   "src/lib/statement.js",
+  "src/cli/args.js",
+  "test/cli.test.js",
+  "test/cli-helper.test.js",
   "test/statement.test.js"
 ];
 
@@ -115,6 +121,7 @@ const scanRoots = [
   "docs",
   "examples",
   "extension",
+  "bin",
   "scripts",
   "src",
   "test",

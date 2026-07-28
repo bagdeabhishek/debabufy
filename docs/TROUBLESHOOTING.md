@@ -3,6 +3,19 @@
 Start by confirming that the latest build passed CI and that the Income Tax
 portal tab was reloaded after installing or updating the extension.
 
+## The CLI cannot launch Chrome or Edge
+
+Install the selected browser and confirm it opens normally. The CLI uses
+Playwright's `chrome` channel by default; pass `--browser msedge` to use
+Microsoft Edge. It intentionally does not reuse your normal browser profile.
+
+## The CLI fills the wrong section or finds too few fields
+
+Run `p` in the CLI to preview the current page/dialog without changing it.
+Buyer, seller, and transaction rows live behind separate **Add Details**
+dialogs. Open the relevant dialog in the browser, return to the terminal, and
+press Enter again. Stop with `q` if the preview is unexpected.
+
 ## The extension is missing after Firefox restarts
 
 Firefox's **Load Temporary Add-on** installation lasts only until the browser
@@ -25,8 +38,8 @@ privacy-safe test, use `examples/synthetic-statement.json`.
 The official challan statement layout may have changed, or the PDF may not
 contain extractable text.
 
-- Confirm that the file is a Form 26QB challan statement rather than a payment
-  receipt or screenshot.
+- Confirm that the file is a Form 141 Schedule B challan statement rather than
+  a payment receipt, screenshot, or Form 132 TDS certificate.
 - Try the synthetic JSON to distinguish an installation problem from a
   statement-layout problem.
 - Do not upload the real PDF to an issue.
@@ -38,7 +51,7 @@ contain extractable text.
 1. Confirm the active tab is on `www.incometax.gov.in` or
    `eportal.incometax.gov.in`.
 2. Reload the portal tab after installing or updating the extension.
-3. Navigate back to the relevant Form 26QB step.
+3. Navigate back to the relevant Form 141 Schedule B page or Add Details dialog.
 4. Open the extension and try **Preview matches** again.
 
 The content script intentionally does not run on other websites.
@@ -47,11 +60,14 @@ The content script intentionally does not run on other websites.
 
 Portal steps expose different fields, and labels can change.
 
-- Confirm that the relevant 26QB step is visible in the active tab.
-- Repeat preview on each page rather than expecting one page to contain the
-  whole filing.
-- Custom Angular dropdowns can be reported as unresolved and must be selected
-  manually in this version.
+- Confirm that the relevant Form 141 section or Add Details dialog is visible in
+  the active tab.
+- Buyer, seller, and transaction rows are not ordinary page inputs. Open the
+  matching **Add Details** dialog before running Preview/Fill.
+- Use **Download value-free page map** if a current portal control is still not
+  recognized. The export redacts PAN-like, email, and long-number text and never
+  includes entered control values. Review labels and identifiers yourself
+  before attaching it to a bug report.
 - Open a bug report with browser/version, extension commit or artifact name, the
   unresolved field paths, and rewritten synthetic labels only.
 

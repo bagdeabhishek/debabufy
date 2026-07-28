@@ -13,7 +13,7 @@ compatibility, and tax outcomes are not guaranteed.
 
 The project cannot determine the correct tax treatment for a transaction. Ask a
 qualified tax professional about rates, interest, fees, dates, eligibility, or
-whether a Form 26QB filing is required.
+whether a Form 141 Schedule B filing is required.
 
 ## Sensitive or security matters
 

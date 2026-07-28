@@ -238,6 +238,12 @@ textarea {
 .confirm input { margin: 2px 0 0; }
 .confirm.compact { color: var(--muted); font-size: 11px; font-weight: 500; }
 .button-row button { flex: 1; }
+.diagnostic {
+  width: 100%;
+  min-height: 30px;
+  margin-top: 5px;
+  font-size: 10px;
+}
 
 .result {
   margin-top: 10px;

@@ -125,7 +125,7 @@ function normalizeTaxYear(value) {
 function emptyNormalized() {
   return {
     meta: {
-      form: "26QB",
+      form: "141-SCHEDULE-B",
       acknowledgement_number: null,
       tax_year: null,
       source_format: null
@@ -175,6 +175,15 @@ export function parseStatementText(text) {
     .replace(/[ \t]+/g, " ");
   const result = emptyNormalized();
   result.meta.source_format = "text";
+
+  if (
+    /FORM NO\.\s*132/i.test(normalizedText) &&
+    /Summary of Transaction\(s\).*Form No\.\s*141/i.test(normalizedText)
+  ) {
+    throw new Error(
+      "This is a Form 132 TDS certificate, not the prior Form 141 challan statement. Choose the previous Form 141 Schedule B challan statement PDF."
+    );
+  }
 
   if (
     /Details of all buyers/i.test(normalizedText) &&
@@ -535,7 +544,11 @@ export function normalizeStatementJson(input) {
   }
   if (input.meta && input.property && input.transaction && input.tax_deposit) {
     const normalized = clone(input);
-    normalized.meta = { form: "26QB", ...normalized.meta, source_format: "json" };
+    normalized.meta = {
+      form: "141-SCHEDULE-B",
+      ...normalized.meta,
+      source_format: "json"
+    };
     normalized.portal = { tds26_type: "SCHEDULE_B", tile_id: 21, ...normalized.portal };
     normalized.extraction ??= { warnings: [], detected_fields: [] };
     return normalized;

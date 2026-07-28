@@ -9,7 +9,7 @@ const SECOND_BUYER_PAN = `${"B".repeat(5)}${"1".repeat(4)}B`;
 const SELLER_PAN = `${"C".repeat(5)}${"2".repeat(4)}C`;
 
 const SYNTHETIC_STATEMENT = `
-Form No. 26QB
+Form No. 141
 Acknowledgement Number :\tACK-SYNTHETIC-001
 Challan Identification Number (CIN):\tCIN-SYNTHETIC
 Date of E-Filing :\t25-Jul-2026
@@ -56,6 +56,7 @@ Schedule B\tSection\t0020\t800\t₹ 2,000\t₹ 0\t₹ 0\t₹ 2,000\tNet Banking\
 test("parses the official challan statement table layout", () => {
   const result = parseStatementText(SYNTHETIC_STATEMENT);
   assert.equal(result.meta.source_format, "challan-statement-pdf");
+  assert.equal(result.meta.form, "141-SCHEDULE-B");
   assert.equal(result.meta.acknowledgement_number, "ACK-SYNTHETIC-001");
   assert.equal(result.meta.tax_year, "2026-27");
   assert.equal(result.buyers.length, 2);
@@ -76,6 +77,7 @@ test("proposes the next instalment without approving it", () => {
     paymentDate: "2026-07-26"
   });
   assert.equal(next.meta.acknowledgement_number, null);
+  assert.equal(next.meta.form, "141-SCHEDULE-B");
   assert.equal(next.meta.previous_acknowledgement_number, "ACK-SYNTHETIC-001");
   assert.equal(next.transaction.cumulative_previous_installments, 300_000);
   assert.equal(next.transaction.current_payment_amount, 500_000);
@@ -83,11 +85,25 @@ test("proposes the next instalment without approving it", () => {
   assert.equal(next.tax_deposit.rate_percent, 1);
   assert.equal(next.tax_deposit.tds_amount, 5_000);
   assert.equal(next.tax_deposit.total_amount, 5_000);
+  assert.equal(next.portal.form_flow, "FORM_141_SCHEDULE_B");
+  assert.equal(next.portal.month_of_deduction, "Jul-2026");
+  assert.equal(next.portal.nature_transaction, "Schedule B");
   assert.equal(next.review.approved, false);
   assert.ok(validateReviewedFiling(next).includes("Review must be explicitly approved."));
 
   next.review.approved = true;
   assert.deepEqual(validateReviewedFiling(next), []);
+});
+
+test("rejects Form 132 certificates with a useful source-file message", () => {
+  assert.throws(
+    () => parseStatementText(`
+      FORM NO. 132
+      Certificate under section 395(4) of the Act for tax deducted at source
+      Summary of Transaction(s) (as per Form No. 141)
+    `),
+    /Form 132 TDS certificate.*Form 141 Schedule B challan statement/
+  );
 });
 
 test("keeps the documented synthetic dry run in sync", () => {
