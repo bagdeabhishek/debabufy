@@ -23,8 +23,9 @@
     "tds"
   ],
   "scripts": {
-    "build": "node scripts/build-extension.js",
+    "build": "npm run generate:icons && node scripts/build-extension.js",
     "check": "node scripts/check-public.js",
+    "generate:icons": "node scripts/generate-icons.js",
     "inspect:pdf": "node scripts/extract-pdf-text.js",
     "package": "npm run build && node scripts/package-extension.js",
     "test": "node --test",

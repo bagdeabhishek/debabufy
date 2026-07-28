@@ -111,9 +111,13 @@ function renderCandidate() {
     `${candidate.buyers?.length ?? 0} buyer(s) · ${candidate.sellers?.length ?? 0} seller(s)`;
 
   const warnings = candidate.review?.warnings ?? [];
-  elements.warnings.innerHTML = warnings
-    .map((warning) => `<div class="warning">${escapeHtml(warning)}</div>`)
-    .join("");
+  elements.warnings.replaceChildren();
+  for (const warning of warnings) {
+    const message = document.createElement("div");
+    message.className = "warning";
+    message.textContent = warning;
+    elements.warnings.append(message);
+  }
 
   const rows = [
     ["Prior acknowledgement", candidate.meta?.previous_acknowledgement_number],
@@ -128,9 +132,15 @@ function renderCandidate() {
     ["Interest + fee", `${money(candidate.tax_deposit?.interest)} + ${money(candidate.tax_deposit?.other_fee)}`],
     ["Proposed total", money(candidate.tax_deposit?.total_amount)]
   ];
-  elements.summary.innerHTML = rows
-    .map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd title="${escapeHtml(value ?? "—")}">${escapeHtml(value ?? "—")}</dd>`)
-    .join("");
+  elements.summary.replaceChildren();
+  for (const [label, value] of rows) {
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = value ?? "—";
+    description.title = value ?? "—";
+    elements.summary.append(term, description);
+  }
   updateApproval();
 }
 
@@ -245,13 +255,4 @@ function money(value) {
 function percent(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${number}%` : "—";
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }

@@ -33,6 +33,27 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: extension_version
+    attributes:
+      label: Extension version
+      description: Provide the version, commit, or CI artifact name.
+      placeholder: "0.1.0, commit abc1234, or tds-26qb-assistant-main-*"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: synthetic_test
+    attributes:
+      label: Synthetic dry run
+      description: Did examples/synthetic-statement.json work as documented?
+      options:
+        - "Yes"
+        - "No"
+        - "Not attempted"
+    validations:
+      required: true
+
   - type: checkboxes
     id: privacy
     attributes:
