@@ -79,12 +79,11 @@ async function run(options) {
 
     console.log("\nLog in yourself and open Form 141 → Schedule B.");
     console.log("The CLI will never enter credentials, solve CAPTCHA/OTP, submit, or pay.");
-    await cli.question("When the relevant page or Add Details dialog is visible, press Enter: ");
 
     while (true) {
       const activePage = latestPortalPage(context.pages()) ?? page;
       const command = (await cli.question(
-        "\n[Enter] fill current page/dialog · p preview · q quit: "
+        "\nWhen the relevant page/dialog is visible: [Enter] fill · p preview · q quit: "
       )).trim().toLowerCase();
       if (command === "q" || command === "quit") break;
 
