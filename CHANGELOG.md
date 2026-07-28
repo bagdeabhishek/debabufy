@@ -9,6 +9,8 @@ All notable changes will be documented in this file.
 - Branded extension icons and explicit minimum browser versions.
 - Target-specific Chrome and Firefox deployment packages, workflow artifacts,
   checksums, and automated main-build GitHub prereleases.
+- Firefox 115 compatibility floor based on the first version supporting
+  in-memory `storage.session`.
 - Public-facing documentation and privacy/security policies.
 - In-memory-only proposal storage with no local-storage fallback.
 - Reduced extension permissions by removing runtime scripting and redundant
