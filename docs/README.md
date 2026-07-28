@@ -11,6 +11,7 @@ Start with the guide that matches what you are trying to do.
 | [Security policy](../SECURITY.md) | You need to report a vulnerability or review the hard safety boundaries |
 | [Support](../SUPPORT.md) | You need to ask a usage question or report a problem |
 | [Contributing](../CONTRIBUTING.md) | You want to change the code or portal matching |
+| [Release pipeline](RELEASING.md) | You want to understand main-build artifacts and GitHub prereleases |
 | [Public release checklist](PUBLIC_RELEASE_CHECKLIST.md) | You are preparing a public or browser-store release |
 
 Do not upload real filing data to an issue, pull request, discussion, or support

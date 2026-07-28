@@ -25,36 +25,41 @@ npm test
 npm run build
 ```
 
-The unpacked extension is now in `dist/extension`.
+The unpacked extensions are now in `dist/chrome` and `dist/firefox`.
 
-## Option B: use a main-branch CI build
+## Option B: use an automated main build
 
-GitHub requires you to be signed in to download workflow artifacts.
+Every successful push to `main` creates a GitHub prerelease containing the
+browser-targeted packages and checksums.
 
-1. Open the latest successful
-   [main-branch CI run](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush).
-2. Download the `tds-26qb-assistant-main-*` artifact.
-3. Extract it. The artifact contains:
-   - `tds-26qb-assistant.zip`
-   - `tds-26qb-assistant.zip.sha256`
+1. Open [Releases](https://github.com/bagdeabhishek/tds-26qb-assistant/releases).
+2. Choose the newest `Main build #…` prerelease.
+3. Download the Chrome or Firefox ZIP and its matching `.sha256` file.
 4. Verify the checksum before extracting the extension package.
 
 Linux or macOS:
 
 ```bash
-sha256sum -c tds-26qb-assistant.zip.sha256
+sha256sum -c tds-26qb-assistant-chrome.zip.sha256
+sha256sum -c tds-26qb-assistant-firefox.zip.sha256
 ```
 
-PowerShell:
+PowerShell example for Chrome:
 
 ```powershell
-$expected = (Get-Content .\tds-26qb-assistant.zip.sha256).Split()[0]
-$actual = (Get-FileHash .\tds-26qb-assistant.zip -Algorithm SHA256).Hash.ToLower()
+$expected = (Get-Content .\tds-26qb-assistant-chrome.zip.sha256).Split()[0]
+$actual = (Get-FileHash .\tds-26qb-assistant-chrome.zip -Algorithm SHA256).Hash.ToLower()
 $actual -eq $expected
 ```
 
 The PowerShell command should return `True`; `sha256sum` should report `OK`.
-Extract `tds-26qb-assistant.zip` before loading it in the browser.
+Extract the browser ZIP before loading it locally.
+
+The same files are uploaded as separate Chrome and Firefox artifacts on the
+corresponding
+[main-branch CI run](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
+and retained for 30 days. GitHub requires sign-in for workflow-artifact
+downloads.
 
 ## Load the extension
 
@@ -63,8 +68,8 @@ Extract `tds-26qb-assistant.zip` before loading it in the browser.
 1. Enter `chrome://extensions` in the address bar.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
-4. Choose `dist/extension` if you built from source, or the extracted extension
-   package if you downloaded CI output.
+4. Choose `dist/chrome` if you built from source, or the extracted Chrome
+   package if you downloaded a main build.
 5. Pin **26QB Next Instalment Assistant** from the extensions menu.
 
 If an Income Tax portal tab was open during installation, reload it before
@@ -74,8 +79,8 @@ using preview or fill.
 
 1. Enter `about:debugging#/runtime/this-firefox` in the address bar.
 2. Select **Load Temporary Add-on**.
-3. Choose `dist/extension/manifest.json` or `manifest.json` in the extracted
-   extension package.
+3. Choose `dist/firefox/manifest.json` or `manifest.json` in the extracted
+   Firefox package.
 
 This temporary installation disappears when Firefox restarts.
 
