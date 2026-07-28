@@ -17,7 +17,7 @@ function roundRupees(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
 
-function monthOfDeduction(value) {
+export function monthOfDeduction(value) {
   const match = String(value ?? "").match(/^(\d{4})-(\d{2})-\d{2}$/);
   if (!match) return null;
   const months = [
