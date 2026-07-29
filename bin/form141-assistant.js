@@ -106,9 +106,14 @@ async function run(options) {
     while (true) {
       const activePage = latestPortalPage(context.pages()) ?? page;
       const command = (await cli.question(
-        "\nWhen the relevant page/dialog is visible: [Enter] fill · p preview · q quit: "
+        "\nWhen the relevant page/dialog is visible: [Enter] fill · p preview · d diagnose · q quit: "
       )).trim().toLowerCase();
       if (command === "q" || command === "quit") break;
+      if (command === "d" || command === "diagnose") {
+        const diagnosticPath = await saveLivePageDiagnostics(activePage);
+        console.log(`Saved live rendered-page diagnostics: ${diagnosticPath}`);
+        continue;
+      }
 
       const type = command === "p" ? "FORM141_PREVIEW" : "FORM141_FILL";
       const result = await invokeHelper(activePage, {
@@ -198,6 +203,21 @@ function printPortalResult(result) {
     .filter((detail) => ["missing", "unsupported"].includes(detail.outcome))
     .map((detail) => detail.path);
   if (unresolved.length) console.log(`Unresolved: ${unresolved.join(", ")}`);
+  const mapped = (result.details ?? []).filter((detail) =>
+    ["matched", "filled", "already-populated", "unsupported"].includes(detail.outcome)
+  );
+  if (mapped.length) {
+    console.log("Control mappings:");
+    for (const detail of mapped) {
+      const keys = detail.controlKeys?.length
+        ? detail.controlKeys.join(", ")
+        : `${detail.controlTag ?? "control"}${detail.controlType ? `:${detail.controlType}` : ""}`;
+      console.log(
+        `  ${detail.path} -> ${keys} [${detail.outcome}]` +
+        `${detail.controlLabel ? ` · ${detail.controlLabel}` : ""}`
+      );
+    }
+  }
 }
 
 async function installPageHelper(context) {
@@ -241,6 +261,19 @@ async function invokeHelper(page, message) {
     const returned = globalThis.__form141CliListener(payload, null, resolve);
     if (returned !== true) resolve({ ok: false, error: "Portal helper did not accept the request." });
   }), message);
+}
+
+async function saveLivePageDiagnostics(page) {
+  const diagnostics = await invokeHelper(page, {
+    type: "FORM141_DIAGNOSTICS"
+  });
+  if (!diagnostics?.ok) {
+    throw new Error("Could not inspect the current rendered portal page.");
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const outputPath = `form141-live-page-${timestamp}.json`;
+  await fs.writeFile(outputPath, `${JSON.stringify(diagnostics, null, 2)}\n`, "utf8");
+  return outputPath;
 }
 
 function latestPortalPage(pages) {

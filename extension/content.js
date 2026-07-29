@@ -142,23 +142,37 @@
 
       matched += 1;
       used.add(match.control);
+      const matchedControl = {
+        controlTag: match.control.tagName.toLowerCase(),
+        controlType: match.control.getAttribute("type"),
+        controlKeys: match.keys.map(redactDiagnosticText),
+        controlLabel: redactDiagnosticText(match.label)
+      };
       if (message.type === "FORM141_PREVIEW") {
-        details.push({ path: field.path, outcome: "matched" });
+        details.push({ path: field.path, outcome: "matched", ...matchedControl });
         continue;
       }
       if (!message.overwrite && hasValue(match.control)) {
         skipped += 1;
-        details.push({ path: field.path, outcome: "already-populated" });
+        details.push({
+          path: field.path,
+          outcome: "already-populated",
+          ...matchedControl
+        });
         continue;
       }
 
       const didFill = await setControl(match.control, field.value, match.label);
       if (didFill) {
         filled += 1;
-        details.push({ path: field.path, outcome: "filled" });
+        details.push({ path: field.path, outcome: "filled", ...matchedControl });
       } else {
         unsupported += 1;
-        details.push({ path: field.path, outcome: "unsupported" });
+        details.push({
+          path: field.path,
+          outcome: "unsupported",
+          ...matchedControl
+        });
       }
     }
 
@@ -735,13 +749,30 @@
       keys: keys.map(redactDiagnosticText),
       label: redactDiagnosticText(label)
     }));
+    const actions = [...context.root.querySelectorAll(
+      "button, a[role='button'], input[type='button'], input[type='submit'], [role='button']"
+    )]
+      .filter(isVisible)
+      .map((control) => ({
+        tag: control.tagName.toLowerCase(),
+        type: control.getAttribute("type"),
+        role: control.getAttribute("role"),
+        id: redactDiagnosticText(control.id),
+        name: redactDiagnosticText(control.getAttribute("name")),
+        ariaLabel: redactDiagnosticText(control.getAttribute("aria-label")),
+        text: redactDiagnosticText(control.textContent),
+        disabled:
+          Boolean(control.disabled) ||
+          control.getAttribute("aria-disabled") === "true"
+      }));
     return {
       ok: true,
       generatedAt: new Date().toISOString(),
       origin: location.origin,
       flow: context.flow,
       page: context.page,
-      visibleControls: controls
+      visibleControls: controls,
+      visibleActions: actions
     };
   }
 
