@@ -1,78 +1,30 @@
-# Privacy policy
+# Privacy
 
-Effective date: 26 July 2026
+DeBabufy is local-first.
 
-Form 141 Schedule B Assistant is designed to process filing information
-locally. The project does not operate a backend service and does not collect,
-sell, transmit, or monetize personal information.
+## Data handled
 
-## Data processed
+The selected workflow may process a previous challan statement, names, PANs,
+contact details, property details, tax figures, and the rendered portal page.
 
-When directed by the user, the extension may process a prior Form 141 Schedule
-B challan statement and a proposed filing containing information such as PAN-formatted
-identifiers, names, contact details, addresses, property information, filing
-references, dates, and monetary values.
+## Where it goes
 
-## Processing and storage
+- Statement contents and proposals remain in application memory.
+- DeBabufy does not operate a backend and does not collect telemetry.
+- A dedicated Chrome profile is stored in DeBabufy's local application-data
+  directory so the user can log in normally.
+- Failure diagnostics are stored locally in the application's `diagnostics`
+  directory.
 
-- PDF, JSON, and text parsing happens locally within the CLI or extension popup.
-- The project makes no analytics, telemetry, advertising, or remote API request.
-- The CLI attaches to an ordinary Chrome instance that the user starts with a
-  dedicated profile and loopback-only debugging endpoint. That profile is
-  stored on the user's computer and may contain Income Tax portal cookies and
-  session data until the user deletes it.
-- A reviewed proposal is held in the browser's in-memory extension session
-  storage so it can survive portal navigation.
-- The proposal expires after two hours and is cleared on browser restart,
-  extension reload/update, extension disable, or the user's **Clear** action.
-- There is no disk-backed storage fallback.
-- The content script receives the reviewed proposal only when the user invokes
-  preview or fill on an official Income Tax portal page.
-- The CLI passes the reviewed proposal only to the official portal tab in the
-  locally attached Chrome session.
-- The optional diagnostic recorder stores only value-redacted page/control
-  schemas, Income Tax payment-API endpoint paths, JSON key/type paths, HTTP
-  status codes, and redacted runtime errors in extension session memory.
-- Diagnostic recording is opt-in. It never records request or response values,
-  headers, cookies, tokens, PANs, amounts, names, contacts, or addresses. The
-  user must explicitly download or clear the report.
+The government portal itself receives data when the user runs a workflow in
+their authenticated Chrome session, just as it would during manual entry.
 
-## Third-party processing
+## Sharing
 
-The Income Tax portal is a third-party service with its own terms and privacy
-practices. When the user asks the CLI or extension to fill a page, the values
-become part of that page in the same way as manually entered values. The project
-does not control how the portal subsequently processes them.
+Never share the Chrome profile. Review and redact diagnostics before attaching
+them to a public issue. When in doubt, describe the screen and error without
+uploading the file.
 
-PDF parsing is performed by a copy of PDF.js packaged inside the extension. It
-is not loaded from a CDN.
-
-## Permissions
-
-The extension requests only:
-
-- `activeTab` to communicate with the user-invoked official portal tab;
-- `storage` for in-memory session state; and
-- content-script access limited to `www.incometax.gov.in` and
-  `eportal.incometax.gov.in`.
-
-It does not request cookie, history, download, clipboard, web-request, or
-all-sites access.
-
-## Source repository and issue reports
-
-The source repository contains synthetic fixtures only. Contributors and users
-must not attach real statements, HAR files, PANs, contact details, addresses,
-payment references, credentials, OTPs, or unredacted portal screenshots to
-issues or pull requests.
-
-## Changes
-
-Material privacy changes will be documented in the changelog and release notes.
-Changes requiring new permissions will not be treated as silent updates.
-
-## Contact
-
-For privacy questions that do not contain personal filing data, open a regular
-repository issue. Report vulnerabilities privately as described in
-[SECURITY.md](SECURITY.md).
+Uninstalling DeBabufy may not delete its application-data directory
+automatically. Users can remove that directory to delete the dedicated Chrome
+profile and diagnostics after closing DeBabufy and Chrome.

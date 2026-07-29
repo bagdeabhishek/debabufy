@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Usage and troubleshooting
-    url: https://github.com/bagdeabhishek/tds-26qb-assistant/blob/main/docs/TROUBLESHOOTING.md
+    url: https://github.com/bagdeabhishek/debabufy/blob/main/SUPPORT.md
     about: Check common installation, analysis, preview, and filling problems first.
   - name: Report a security vulnerability privately
-    url: https://github.com/bagdeabhishek/tds-26qb-assistant/security/advisories/new
+    url: https://github.com/bagdeabhishek/debabufy/security/advisories/new
     about: Do not disclose vulnerabilities or sensitive filing data in a public issue.

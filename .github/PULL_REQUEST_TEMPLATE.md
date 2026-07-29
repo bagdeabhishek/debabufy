@@ -9,17 +9,15 @@
 ## Safety and privacy
 
 - [ ] This change contains synthetic data only.
-- [ ] This change does not add credential, OTP, navigation, submission, or
-      payment automation.
+- [ ] This change does not add credential, CAPTCHA/OTP, final submission, or
+      payment authorization.
 - [ ] I reviewed any change to permissions, storage, networking, or portal
       interaction.
 - [ ] I updated privacy, security, and user documentation where relevant.
 
 ## Validation
 
-- [ ] `npm run check`
 - [ ] `npm test`
-- [ ] `npm run package`
-- [ ] `npm run verify:package`
+- [ ] `npm run pack` (when desktop packaging is affected)
 
 <!-- Add synthetic reproduction or validation details. Never attach real filing data. -->

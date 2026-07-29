@@ -1,300 +1,117 @@
-# Form 141 Schedule B Next Instalment Assistant
+# DeBabufy
 
-[![CI](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#project-status)
-[![Privacy: local only](https://img.shields.io/badge/privacy-local--only-146c43.svg)](PRIVACY.md)
+**Your paperwork. Less babu. More done.**
 
-An unofficial, local-only CLI for preparing and browser-filling the next
-property-TDS instalment in Form 141 Schedule B. A Chrome/Firefox extension is
-also included as an optional interface.
+DeBabufy is an unofficial, open-source desktop application for repetitive
+Indian administrative workflows. It runs locally, connects to an ordinary
+Chrome session, and keeps a human in control of authentication, review,
+submission, and payment.
 
-Give it the previous challan statement and the amount paid or credited this
-time. It extracts the recurring details, proposes the next instalment, shows the
-important values for review, and fills matching fields on the currently open
-Income Tax portal page.
+> [!WARNING]
+> DeBabufy is not affiliated with or endorsed by the Government of India or the
+> Income Tax Department. It does not provide tax or legal advice.
 
-> [!IMPORTANT]
-> This project is not affiliated with, endorsed by, or operated by the Income
-> Tax Department, Government of India, or any payment provider. It is not tax,
-> legal, or financial advice. The assistant is alpha software: review every
-> value and complete submission and payment yourself.
+## Current workflow
 
-## At a glance
+### Income Tax Form 141 — Schedule B
 
-| | |
-| --- | --- |
-| **You provide** | Previous Form 141 Schedule B challan statement, current payment amount, and date |
-| **It proposes** | Carried party/property data, cumulative instalments, TDS, interest, fee, and total |
-| **It can fill** | The current Schedule B page or open Buyer, Seller, or Transaction “Add Details” dialog in a manually started, accepted Chrome session |
-| **It never does** | Credentials, OTP, CAPTCHA, form submission, challan/payment creation, or payment authorization |
-| **Data handling** | Parsing stays local; the CLI attaches over a loopback-only debugging connection and the extension uses two-hour in-memory proposal storage |
-| **Current status** | Alpha; CLI dry run passes, live portal selector testing is still required |
+The first workflow prepares a subsequent property-TDS instalment using only:
 
-## CLI quick start
+1. the previous Form 141 challan statement; and
+2. the amount paid in the current instalment.
 
-Requirements: Node.js 22.13 or newer, npm, and installed Google Chrome or
-Microsoft Edge.
+The parser carries forward the parties and property, calculates a deterministic
+proposal from the previous statement, and shows every important figure for
+review. No LLM, cloud API, or probabilistic agent is involved.
 
-```bash
-git clone https://github.com/bagdeabhishek/tds-26qb-assistant.git
-cd tds-26qb-assistant
-npm ci
-npm run cli -- \
-  --statement examples/synthetic-statement.json \
-  --amount 500000 \
-  --date 2026-07-28 \
-  --dry-run
+The current desktop flow:
+
+1. reads the previous PDF, JSON, or text statement locally;
+2. infers the next proposal using deterministic rules;
+3. launches a dedicated ordinary Chrome profile;
+4. waits for you to log in and open Form 141 Schedule B;
+5. fills the main fields;
+6. edits the portal-created buyer and assigns the correct ownership share;
+7. adds remaining buyers, sellers, and the transaction sequentially; and
+8. stops for your review before portal continuation, submission, or payment.
+
+Navigation from the portal home page to Form 141 and onward to the payment
+review screen is planned, but is not claimed as complete yet.
+
+## Install a release
+
+Download the Windows installer or portable build from
+[GitHub Releases](https://github.com/bagdeabhishek/debabufy/releases).
+The builds are currently unsigned, so Windows may display a SmartScreen
+warning. Verify the release and checksum before running it.
+
+## Run from source
+
+Requirements:
+
+- Node.js 22 or newer;
+- Google Chrome; and
+- Windows, macOS, or Linux.
+
+```sh
+git clone https://github.com/bagdeabhishek/debabufy.git
+cd debabufy
+npm install
+npm start
 ```
 
-For a real filing, use the previous Form 141 Schedule B challan statement:
+Chrome is launched directly by the desktop app with a dedicated non-default
+profile and a loopback-only debugging port. Playwright attaches to that ordinary
+Chrome process; it does not launch a bundled automation browser.
 
-```bash
-npm run cli -- \
-  --statement "/path/to/previous-challan-statement.pdf" \
-  --amount 500000 \
-  --date 2026-07-28
+## Repository layout
+
+```text
+apps/
+  desktop/                 Electron shell and local UI
+workflows/
+  registry.js              Explicit bundled-workflow registry
+  form-141/                Self-contained Form 141 workflow
+    browser/               Income Tax portal helper
+    cli/                   Advanced CLI argument handling
+    docs/                  Workflow-specific troubleshooting
+    examples/              Synthetic fixtures
+    src/                   Parser, inference, and portal helpers
+    test/                  Workflow tests
+    index.js               Desktop-facing workflow API
+    workflow.json          Metadata and input definition
 ```
 
-For a live run, first follow
-[Attach to an accepted Chrome session](docs/ATTACH_EXISTING_CHROME.md). Start
-ordinary Chrome yourself, log in, and open Form 141 Schedule B. After you type
-`REVIEWED`, the CLI attaches to that accepted browser and fills the current page
-or dialog. From the main Schedule B page, press `a` to open, fill, validate, and
-add every Buyer, Seller, and Transaction row in sequence. If the portal has
-pre-created the logged-in buyer without an ownership share, the CLI selects and
-updates that row before adding another buyer. A single buyer is entered as
-100%; multiple buyers use the reviewed statement shares. It does not launch the
-Playwright-managed profile that the portal previously rejected.
-
-Use an existing candidate JSON with:
-
-```bash
-npm run cli -- --candidate "/path/to/form141-next-instalment.json"
-```
-
-The manually started Chrome profile contains portal session data. Its location
-is selected in the startup command; remove that directory when you no longer
-want the session retained.
-
-## Optional extension dry run
-
-This checks the popup review flow without using private data or opening the
-Income Tax portal.
-
-```bash
-npm run build
-```
-
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**, select **Load unpacked**, and choose
-   `dist/chrome`.
-3. Open the extension from the browser toolbar.
-4. Choose `examples/synthetic-statement.json`.
-5. Enter `500000` as the current amount and select a date.
-6. Select **Analyze locally**.
-7. Confirm that the proposal shows:
-   - previous instalments total: ₹3,00,000;
-   - this payment: ₹5,00,000; and
-   - proposed TDS and total: ₹5,000 at the carried 1% rate.
-8. Inspect the warnings and the complete JSON. Do not use the synthetic proposal
-   on the real portal.
-
-The sample contains invented placeholders only. It is safe to inspect, modify,
-and use in public bug reports.
-
-## Install
-
-There is no Chrome Web Store or Firefox Add-ons release yet. Install the alpha
-from source, or download a CI build if you are signed in to GitHub.
-
-### Build from source
-
-```bash
-npm ci
-npm run build
-```
-
-#### Chrome / Chromium
-
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Select **Load unpacked**.
-4. Choose `dist/chrome`.
-5. Pin **Form 141 Schedule B Assistant**.
-6. Reload any Income Tax portal tab that was already open.
-
-#### Firefox
-
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Select **Load Temporary Add-on**.
-3. Choose `dist/firefox/manifest.json`.
-
-Firefox removes a temporary extension when the browser restarts.
-
-### Download a verified main build
-
-Every successful push to `main` creates an automated GitHub prerelease with
-browser packages, a CLI package, and matching checksums:
-
-- `form141-assistant-cli.tgz`
-- `form141-assistant-cli.tgz.sha256`
-- `tds-26qb-assistant-chrome.zip`
-- `tds-26qb-assistant-chrome.zip.sha256`
-- `tds-26qb-assistant-firefox.zip`
-- `tds-26qb-assistant-firefox.zip.sha256`
-
-Open [Releases](https://github.com/bagdeabhishek/tds-26qb-assistant/releases),
-choose the newest `Main build #…` prerelease, and download the CLI or browser
-package. Verify its checksum before use.
-
-Install the downloaded CLI archive locally or globally:
-
-```bash
-npm install --global ./form141-assistant-cli.tgz
-form141-assistant --help
-```
-
-The same packages are also available as separate CLI, Chrome, and Firefox
-workflow artifacts on the corresponding
-[successful `main` run](https://github.com/bagdeabhishek/tds-26qb-assistant/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
-for 30 days. GitHub requires sign-in to download workflow artifacts.
-
-The ZIPs are unsigned deployment packages: upload the Chrome ZIP to the Chrome
-Web Store or the Firefox ZIP to AMO. For local testing, extract the chosen ZIP
-and load its root directory/manifest using the browser steps above.
-
-See [Getting started](docs/GETTING_STARTED.md) for checksum commands and a
-careful first live-test procedure.
-
-## Use the optional extension for a filing
-
-Before starting, keep the previous challan statement available and log in to the
-official Income Tax portal yourself.
-
-1. Open the extension and choose the previous statement PDF.
-2. Enter the amount paid or credited this time. The date defaults to today and
-   remains editable.
-3. Select **Analyze locally**.
-4. Review the parties, shares, property, acknowledgement number, cumulative
-   instalments, dates, rate, TDS, interest, fee, and total.
-5. Correct the complete filing JSON if necessary, then confirm the review.
-6. Navigate manually to the Form 141 Schedule B transaction page.
-7. Select **Preview matches**. Preview does not modify the page.
-8. If the preview is correct, select **Fill blank fields**.
-9. Open each Buyer, Seller, or Transaction **Add Details** dialog and repeat
-   preview/fill. Review the row, then click the portal's Add/Save action yourself.
-10. Review everything again, then submit and pay manually.
-11. Select **Clear** when finished.
-
-For the first live test, leave overwrite disabled. The extension attempts
-native and Angular dropdowns and reports any option it cannot select.
-
-## Safety and privacy
-
-- PDF, JSON, and text parsing happens locally in the CLI or extension popup.
-- There is no analytics, telemetry, advertising, remote API, or backend service.
-- The CLI attaches to an ordinary Chrome session that you started and logged
-  into yourself. It refuses remote debugging endpoints outside the local
-  machine and does not close the attached browser.
-- The reviewed proposal uses in-memory `storage.session`, expires after two
-  hours, and is cleared on restart, extension reload/update/disable, or
-  **Clear**.
-- The content script is restricted to `www.incometax.gov.in` and
-  `eportal.incometax.gov.in`.
-- Visible blank fields are the default fill target.
-- The CLI clicks only **Add Details** and the row editor's **Add** button after
-  the user explicitly selects its `a` workflow. It does not click Save as
-  Draft, Continue, submission, challan, or payment controls. The extension
-  never clicks portal action buttons.
-- The extension does not request cookie, history, download, web-request,
-  clipboard, or all-sites access.
-
-Read the complete [privacy policy](PRIVACY.md) and
-[security boundaries](SECURITY.md).
-
-## Project status
-
-**Alpha / live-testing required.**
-
-Statement parsing and inference are covered by synthetic tests. The Income Tax
-portal is a changing third-party application, so field matching must be checked
-through CLI preview or the extension's **Preview matches** mode. Both interfaces
-stop before submission, challan creation, and payment.
-
-Known limitations:
-
-- live portal labels and custom controls can change without notice;
-- the extension must be rerun inside each Form 141 Add Details dialog;
-- a combined property address from the prior statement remains manual because
-  splitting it into portal address components would be ambiguous;
-- only recurring Form 141 Schedule B property-TDS instalments are in scope;
-- Firefox installation is temporary until a signed package is published; and
-- there is no one-click browser-store installation yet.
-
-If something does not work, start with
-[Troubleshooting](docs/TROUBLESHOOTING.md).
-
-## Documentation
-
-| Guide | Purpose |
-| --- | --- |
-| [Getting started](docs/GETTING_STARTED.md) | Installation, checksum verification, dry run, and first live test |
-| [Extension guide](EXTENSION.md) | Detailed workflow and implementation boundaries |
-| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common errors and privacy-safe bug reporting |
-| [Privacy policy](PRIVACY.md) | What data is processed and how it is held |
-| [Security policy](SECURITY.md) | Security boundaries and private reporting |
-| [Support](SUPPORT.md) | Where to ask questions or report problems |
-| [Contributing](CONTRIBUTING.md) | Local setup and pull-request expectations |
-
-## Development
-
-```bash
-npm ci
-npm run check
-npm test
-npm run package
-npm run verify:package
-npm audit --omit=dev
-```
-
-Outputs:
-
-- CLI package and checksum:
-  `dist/form141-assistant-cli.tgz` and `.tgz.sha256`
-- unpacked Chrome extension: `dist/chrome`
-- unpacked Firefox extension: `dist/firefox`
-- Chrome deployment package and checksum:
-  `dist/tds-26qb-assistant-chrome.zip` and `.zip.sha256`
-- Firefox deployment package and checksum:
-  `dist/tds-26qb-assistant-firefox.zip` and `.zip.sha256`
-
-Important source areas:
-
-- `bin/form141-assistant.js` — primary guided Playwright CLI
-- `src/cli/args.js` — CLI argument validation
-- `src/lib/statement.js` — statement parsing and normalization
-- `src/lib/infer.js` — next-instalment proposal and review decisions
-- `extension/content.js` — guarded portal matching and field filling
-- `extension/popup.js` — local PDF workflow and review interface
-- `test/statement.test.js` — synthetic statement/inference coverage
-
-Before changing repository visibility or publishing a browser-store package,
-complete the [public release checklist](docs/PUBLIC_RELEASE_CHECKLIST.md).
+Everything is bundled in the application for now. A signed plug-in system can
+be designed later, after at least two workflows have proven the common
+interface.
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
-opening an issue or pull request.
+Contributions are welcome: portal fixes, accessibility improvements, test
+fixtures, documentation, and new workflows.
 
-Never attach a real statement, HAR, PAN, address, email, phone number,
-acknowledgement number, bank reference, payment data, or unredacted portal
-screenshot. Use synthetic data and field paths only.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Never
+commit a real statement, PAN, Aadhaar number, address, portal response, cookie,
+token, screenshot, HAR, or browser profile. Use synthetic fixtures.
 
-Security issues must be reported privately according to
-[SECURITY.md](SECURITY.md).
+Each new workflow belongs in its own `workflows/<workflow-id>/` directory and
+must expose the same small `prepare` and `run` interface. See the
+[Form 141 module](workflows/form-141/README.md) for the initial example.
+
+## Privacy and safety
+
+- Filing data stays on the device.
+- No telemetry is collected.
+- Credentials, OTP, and CAPTCHA remain entirely with the user.
+- Portal changes fail closed instead of guessing.
+- Diagnostics are stored locally and may still contain sensitive page
+  structure; review them before sharing.
+- DeBabufy never clicks final submission or authorizes payment.
+
+Read [PRIVACY.md](PRIVACY.md), [SECURITY.md](SECURITY.md), and
+[SUPPORT.md](SUPPORT.md) for details.
 
 ## License
 
-[MIT](LICENSE). Bundled third-party software retains its original license; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE)

@@ -1,54 +1,56 @@
-# Contributing
+# Contributing to DeBabufy
 
-Thanks for helping make recurring Form 141 Schedule B preparation safer and
-less tedious.
+Thanks for helping remove unnecessary `chakkar`.
 
-## Never share real filing data
+## Before you begin
 
-Issues, pull requests, tests, logs, and screenshots must not contain:
+- Search existing issues before opening a new one.
+- Use synthetic or fully redacted data.
+- Never post credentials, PANs, Aadhaar numbers, addresses, cookies, tokens,
+  challan references, payment details, HAR files, or browser profiles.
+- Keep workflows human-supervised and stop before irreversible actions.
+- Do not bypass authentication, CAPTCHA, OTP, rate limits, or portal controls.
 
-- challan statements or HAR files;
-- PANs, Aadhaar numbers, names, email addresses, phone numbers, or addresses;
-- acknowledgement, CRN, CIN, bank, UPI, or payment references;
-- passwords, OTPs, cookies, tokens, hashes, or authorization headers; or
-- unredacted Income Tax portal screenshots.
+## Local development
 
-Use generated identifiers and `example.invalid` addresses. When reporting page
-matching problems, provide only the unresolved field path and a rewritten,
-non-identifying label.
-
-## Development setup
-
-Requirements: Node.js 22.13 or newer and npm.
-
-```bash
-npm ci
-npm run check
+```sh
+npm install
 npm test
-npm run build
+npm start
 ```
+
+Build the unpacked desktop application with:
+
+```sh
+npm run pack
+```
+
+## Adding a workflow
+
+Create `workflows/<workflow-id>/` containing:
+
+- `workflow.json` with its identity, supported official domains, inputs, and
+  safety capabilities;
+- `index.js` exporting `manifest`, `prepare(input)`, and `run(context)`;
+- a `README.md` describing prerequisites, exact boundaries, and test steps;
+- deterministic tests and synthetic fixtures; and
+- any portal-specific code inside the workflow directory.
+
+Then add one explicit import to `workflows/registry.js`. Dynamic third-party
+code loading is intentionally out of scope until a signed plug-in design exists.
+
+`prepare` must not change any external state. `run` must report progress, fail
+closed on an unknown screen, and require review before external changes.
 
 ## Pull requests
 
-1. Keep the change focused.
-2. Add or update synthetic tests.
-3. Run `npm run check` and `npm test`.
-4. Explain any permission, storage, network, or portal-interaction change.
-5. Update `PRIVACY.md`, `SECURITY.md`, and `CHANGELOG.md` when relevant.
+A pull request should:
 
-Pull requests that add remote data transmission, credential automation, payment
-automation, broad host access, or hidden inference will not be accepted without
-an explicit redesign and public discussion.
+- solve one clearly described problem;
+- include or update tests;
+- document user-visible behavior and limitations;
+- avoid unrelated formatting or dependency changes; and
+- explain how it was tested without exposing live filing information.
 
-## Portal matching
-
-Portal labels can change. Prefer:
-
-- preview-first matching;
-- narrow label aliases;
-- blank-only filling;
-- field-path-only diagnostics; and
-- no automatic navigation.
-
-Do not add selectors copied from a page if they contain taxpayer or
-transaction-specific values.
+Changes to authentication, Chrome attachment, IPC, updates, diagnostics,
+submission, or payment require explicit security review.

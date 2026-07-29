@@ -1,0 +1,37 @@
+{
+  "id": "form-141-schedule-b",
+  "version": "1.0.0",
+  "name": "Income Tax Form 141 — Schedule B",
+  "shortName": "Form 141 Schedule B",
+  "description": "Prepare the next property-TDS instalment from the previous challan statement.",
+  "officialDomains": [
+    "www.incometax.gov.in",
+    "eportal.incometax.gov.in"
+  ],
+  "inputs": [
+    {
+      "id": "previousChallan",
+      "type": "file",
+      "label": "Previous challan statement",
+      "accept": [
+        ".pdf",
+        ".json",
+        ".txt"
+      ],
+      "required": true
+    },
+    {
+      "id": "currentAmount",
+      "type": "money",
+      "label": "Current amount paid",
+      "currency": "INR",
+      "required": true
+    }
+  ],
+  "safety": {
+    "requiresUserLogin": true,
+    "handlesOtpOrCaptcha": false,
+    "submits": false,
+    "pays": false
+  }
+}

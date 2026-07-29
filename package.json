@@ -1,60 +1,87 @@
 {
-  "name": "tds-26qb-assistant",
-  "version": "0.2.0",
+  "name": "debabufy",
+  "version": "0.1.0",
   "private": true,
-  "description": "Unofficial, local-only CLI and browser assistant for recurring Form 141 Schedule B property-TDS instalments",
+  "description": "Local-first desktop automation for repetitive Indian administrative workflows",
   "type": "module",
+  "main": "apps/desktop/main.js",
   "license": "MIT",
-  "author": "Form 141 Schedule B Assistant contributors",
+  "author": "DeBabufy contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bagdeabhishek/tds-26qb-assistant.git"
+    "url": "git+https://github.com/bagdeabhishek/debabufy.git"
   },
   "bugs": {
-    "url": "https://github.com/bagdeabhishek/tds-26qb-assistant/issues"
+    "url": "https://github.com/bagdeabhishek/debabufy/issues"
   },
-  "homepage": "https://github.com/bagdeabhishek/tds-26qb-assistant#readme",
-  "bin": {
-    "form141-assistant": "bin/form141-assistant.js"
-  },
-  "files": [
-    "bin",
-    "extension/content.js",
-    "src/cli",
-    "src/lib",
-    "LICENSE",
-    "PRIVACY.md",
-    "README.md",
-    "SECURITY.md",
-    "THIRD_PARTY_NOTICES.md"
-  ],
+  "homepage": "https://github.com/bagdeabhishek/debabufy#readme",
   "keywords": [
-    "browser-extension",
+    "automation",
+    "desktop",
     "form-141",
-    "income-tax",
-    "manifest-v3",
-    "privacy",
-    "tds"
+    "india",
+    "local-first",
+    "playwright"
   ],
   "scripts": {
-    "build": "npm run generate:icons && node scripts/build-extension.js",
-    "check": "node scripts/check-public.js",
-    "cli": "node bin/form141-assistant.js",
-    "generate:icons": "node scripts/generate-icons.js",
-    "inspect:pdf": "node scripts/extract-pdf-text.js",
-    "lint:firefox": "npx --yes web-ext@10.5.0 lint --source-dir dist/firefox --output text",
-    "package": "npm run package:browser && npm run package:cli",
-    "package:browser": "npm run build && node scripts/package-extension.js",
-    "package:cli": "node scripts/package-cli.js",
+    "start": "electron .",
     "test": "node --test",
-    "verify:package": "node scripts/verify-package.js && node scripts/verify-cli-package.js"
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis",
+    "cli:form141": "node workflows/form-141/cli.js"
   },
   "dependencies": {
     "pdfjs-dist": "^6.1.200",
     "playwright-core": "^1.62.0"
   },
+  "devDependencies": {
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8"
+  },
   "engines": {
     "node": ">=22.13.0"
   },
-  "packageManager": "npm@11.16.0"
+  "packageManager": "npm@11.16.0",
+  "build": {
+    "appId": "dev.debabufy.desktop",
+    "productName": "DeBabufy",
+    "asar": true,
+    "compression": "maximum",
+    "artifactName": "DeBabufy-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "apps/desktop/**/*",
+      "workflows/registry.js",
+      "workflows/form-141/index.js",
+      "workflows/form-141/workflow.json",
+      "workflows/form-141/cli.js",
+      "workflows/form-141/cli/**/*",
+      "workflows/form-141/src/**/*",
+      "workflows/form-141/browser/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    }
+  }
 }

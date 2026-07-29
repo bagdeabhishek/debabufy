@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self';"
+    >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeBabufy</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="brand-mark" aria-hidden="true">DB</div>
+        <div>
+          <p class="eyebrow">LOCAL-FIRST AUTOMATION</p>
+          <h1>DeBabufy</h1>
+          <p class="tagline">Your paperwork. Less babu. More done.</p>
+        </div>
+        <span class="badge">Unofficial</span>
+      </header>
+
+      <section class="card" aria-labelledby="workflow-heading">
+        <div class="section-heading">
+          <span class="step">1</span>
+          <div>
+            <h2 id="workflow-heading">Choose a workflow</h2>
+            <p>Each workflow is an independently maintained module.</p>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Workflow</span>
+          <select id="workflow" aria-describedby="workflow-description"></select>
+        </label>
+        <p id="workflow-description" class="field-help"></p>
+
+        <div class="input-grid">
+          <div class="field">
+            <span>Previous challan statement</span>
+            <button id="choose-file" class="file-button" type="button">
+              <span id="file-name">Choose PDF, JSON, or text file</span>
+              <span aria-hidden="true">Browse</span>
+            </button>
+          </div>
+
+          <label class="field">
+            <span>Current amount paid</span>
+            <span class="money-input">
+              <span aria-hidden="true">₹</span>
+              <input
+                id="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="100000"
+              >
+            </span>
+          </label>
+        </div>
+
+        <p class="automatic-note">
+          Payment and deduction date will be proposed as today and shown before anything is filled.
+        </p>
+        <button id="prepare" class="primary" type="button">Review proposal</button>
+      </section>
+
+      <section id="proposal-card" class="card hidden" aria-labelledby="proposal-heading">
+        <div class="section-heading">
+          <span class="step">2</span>
+          <div>
+            <h2 id="proposal-heading">Review the proposal</h2>
+            <p>Nothing has been changed on the portal yet.</p>
+          </div>
+        </div>
+        <dl id="proposal" class="proposal-grid"></dl>
+        <div id="warnings" class="warnings hidden"></div>
+      </section>
+
+      <section id="run-card" class="card hidden" aria-labelledby="run-heading">
+        <div class="section-heading">
+          <span class="step">3</span>
+          <div>
+            <h2 id="run-heading">Run it in Chrome</h2>
+            <p>DeBabufy connects to an ordinary Chrome window—not an automation profile.</p>
+          </div>
+        </div>
+
+        <ol class="instructions">
+          <li>Open Chrome using the button below.</li>
+          <li>Log in and complete OTP or CAPTCHA yourself.</li>
+          <li>Open the main Form 141 Schedule B page.</li>
+          <li>Return here and start the workflow.</li>
+        </ol>
+
+        <div class="action-row">
+          <button id="launch-chrome" class="secondary" type="button">Open Chrome</button>
+          <span id="chrome-status" class="muted">Chrome is not connected yet.</span>
+        </div>
+
+        <label class="review-check">
+          <input id="reviewed" type="checkbox">
+          <span>
+            I reviewed the parties, property, dates, rate, TDS, interest, fee, and total.
+          </span>
+        </label>
+        <button id="run" class="primary" type="button" disabled>Start Form 141 workflow</button>
+      </section>
+
+      <section id="activity-card" class="card hidden" aria-live="polite">
+        <div class="section-heading compact">
+          <span class="pulse" aria-hidden="true"></span>
+          <div>
+            <h2>Activity</h2>
+            <p id="activity">Waiting to start.</p>
+          </div>
+        </div>
+        <button id="open-diagnostics" class="text-button hidden" type="button">
+          Open diagnostic folder
+        </button>
+      </section>
+
+      <footer>
+        DeBabufy never enters credentials, solves CAPTCHA/OTP, submits a filing, or authorizes payment.
+        Not affiliated with or endorsed by the Government of India.
+      </footer>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

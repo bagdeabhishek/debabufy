@@ -6,8 +6,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Do not attach a real statement, HAR, PAN, contact detail, address,
-        payment reference, credential, OTP, or unredacted portal screenshot.
+        Do not attach a real statement, HAR, diagnostic file, browser profile,
+        PAN, contact detail, address, payment reference, credential, OTP, or
+        unredacted portal screenshot.
 
   - type: textarea
     id: description
@@ -26,19 +27,19 @@ body:
       required: true
 
   - type: input
-    id: browser
+    id: environment
     attributes:
-      label: Browser and version
-      placeholder: "Chrome 000 or Firefox 000"
+      label: Environment
+      placeholder: "DeBabufy 0.1.0, Windows 11, Chrome 000"
     validations:
       required: true
 
   - type: input
-    id: extension_version
+    id: workflow_version
     attributes:
-      label: Extension version
-      description: Provide the version, commit, or CI artifact name.
-      placeholder: "0.1.0, commit abc1234, or main-build-42"
+      label: Workflow and version
+      description: Provide the workflow, version, commit, or CI artifact name.
+      placeholder: "Form 141 1.0.0, commit abc1234, or main-build-42"
     validations:
       required: true
 
@@ -46,7 +47,7 @@ body:
     id: synthetic_test
     attributes:
       label: Synthetic dry run
-      description: Did examples/synthetic-statement.json work as documented?
+      description: Did the workflow's synthetic fixture work?
       options:
         - "Yes"
         - "No"

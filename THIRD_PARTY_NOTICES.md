@@ -1,6 +1,22 @@
 # Third-party notices
 
-The extension package includes:
+DeBabufy uses:
+
+## Electron
+
+- Project: [Electron](https://www.electronjs.org/)
+- License: MIT
+
+Electron provides the local desktop shell.
+
+## Playwright
+
+- Project: [Microsoft Playwright](https://playwright.dev/)
+- Distribution package: `playwright-core`
+- License: Apache License 2.0
+
+Playwright attaches to the user's ordinary local Chrome session. DeBabufy does
+not download or bundle Playwright-managed browsers.
 
 ## PDF.js
 
@@ -8,8 +24,4 @@ The extension package includes:
 - Distribution package: `pdfjs-dist`
 - License: Apache License 2.0
 
-The upstream license is copied into built extension packages as
-`vendor/PDFJS_LICENSE`.
-
-PDF.js is used locally to extract text from user-selected PDF statements. It is
-bundled with the extension and is not loaded from a CDN.
+PDF.js extracts statement text locally and is not loaded from a CDN.

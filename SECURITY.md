@@ -2,51 +2,30 @@
 
 ## Supported versions
 
-This project is currently alpha software. Security fixes are applied to the
-latest release and the `main` branch.
+DeBabufy is alpha software. Security fixes are applied to the latest release and
+the `main` branch.
 
 ## Report a vulnerability privately
 
-Do not open a public issue for a vulnerability.
+Do not open a public issue. Use
+[GitHub private vulnerability reporting](https://github.com/bagdeabhishek/debabufy/security/advisories/new)
+and use synthetic reproduction data.
 
-Use GitHub's private vulnerability reporting:
-
-<https://github.com/bagdeabhishek/tds-26qb-assistant/security/advisories/new>
-
-Include:
-
-- the affected version or commit;
-- clear reproduction steps using synthetic data;
-- the expected and actual behavior;
-- the potential impact; and
-- a suggested mitigation, if known.
-
-Never include a real challan statement, HAR, PAN, Aadhaar number, contact detail,
-address, credential, OTP, payment reference, bank data, or unredacted portal
-screenshot.
+Never include a real statement, PAN, Aadhaar number, address, credential, OTP,
+payment reference, cookie, token, HAR, browser profile, or unredacted screenshot.
 
 ## Security boundaries
 
-The CLI and extension must not:
+DeBabufy must:
 
-- collect telemetry or send filing data to a remote service;
-- persist the parsed filing proposal to disk unless the user explicitly exports
-  it;
-- access cookies, browsing history, downloads, or unrelated sites;
-- automate credentials, CAPTCHA, OTP, QR, UPI, or bank authorization;
-- click navigation, submission, challan creation, or payment controls; or
-- bypass portal authentication, validation, or anti-automation mechanisms.
+- keep Electron context isolation and renderer sandboxing enabled;
+- keep Node.js unavailable to renderer pages;
+- reject IPC messages from untrusted pages;
+- refuse non-loopback Chrome debugging endpoints;
+- use a dedicated non-default Chrome profile;
+- fail closed when a portal screen is not recognised;
+- avoid telemetry and remote filing-data storage;
+- never automate credentials, CAPTCHA, OTP, submission, or payment; and
+- never load unsigned remote workflow code.
 
-The opt-in diagnostic recorder may observe Form 141 payment-API request and
-response shapes, but must store only endpoint paths, HTTP status codes, and JSON
-key/type paths. It must never store headers, cookies, tokens, or request/response
-values.
-
-The CLI attaches only to a manually started Chrome instance over a loopback
-debugging endpoint. Chrome requires a dedicated non-default user-data directory;
-that directory may contain authentication/session data, so do not share or back
-it up and delete it when persistence is no longer wanted. The CLI must refuse
-non-loopback debugging endpoints and must never launch an automation browser for
-the live portal.
-
-Changes affecting these boundaries require explicit security and privacy review.
+Changes affecting these boundaries require security review.
