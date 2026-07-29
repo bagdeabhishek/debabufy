@@ -46,6 +46,11 @@ to that same browser over a loopback-only Chrome DevTools connection.
    npm run cli -- --candidate "C:\path\form141-next-instalment.json"
    ```
 
+8. After confirming the proposal, leave the main Schedule B page visible and
+   press `a` in the CLI. It will add missing Buyer rows, then Seller rows, then
+   the Transaction row. It validates every open editor before clicking
+   **Add**, and stops on the main page without clicking Continue.
+
 The assistant defaults to `http://127.0.0.1:9222`. It refuses non-loopback CDP
 addresses and checks that `navigator.webdriver` is not enabled before touching
 the page. It does not launch or close Chrome.

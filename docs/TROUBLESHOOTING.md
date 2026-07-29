@@ -16,7 +16,10 @@ in manually, open Form 141, and then run the CLI.
 Run `p` in the CLI to preview the current page/dialog without changing it.
 Buyer, seller, and transaction rows live behind separate **Add Details**
 dialogs. Open the relevant dialog in the browser, return to the terminal, and
-press Enter again. Stop with `q` if the preview is unexpected.
+press Enter again. Or, from the main Schedule B page, press `a` to add every
+missing row sequentially. If that automatic workflow stops, it saves a
+value-free live diagnostic JSON beside the CLI. Stop with `q` if the preview is
+unexpected.
 
 ## The extension is missing after Firefox restarts
 

@@ -31,8 +31,10 @@ Remove `--dry-run` and use the previous Form 141 challan statement for a live
 run. First follow [Attach to an accepted Chrome
 session](ATTACH_EXISTING_CHROME.md), log in yourself, and open Form 141. After
 explicit review, the CLI attaches to that already accepted tab. You open each
-Schedule B section/dialog; the CLI fills only the current view and never clicks
-Add, Save, Continue, Submit, or Pay.
+Schedule B section/dialog and press Enter to fill only the current view.
+Alternatively, return to the main Schedule B page and press `a`: the CLI opens,
+fills, validates, and adds every Buyer, Seller, and Transaction row
+sequentially. It never clicks Save as Draft, Continue, Submit, or Pay.
 
 ## Option A: build from source
 

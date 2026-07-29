@@ -120,6 +120,13 @@
     }
 
     const context = detectContext(message.filing);
+    if (
+      ["buyer", "seller"].includes(context.section) &&
+      Number.isInteger(message.partyIndex) &&
+      message.partyIndex >= 0
+    ) {
+      context.partyIndex = message.partyIndex;
+    }
     const allFields = filingFields(message.filing);
     const fields = fieldsForContext(allFields, context);
     const controls = visibleControls(context.root);
@@ -724,7 +731,7 @@
           section: "buyer",
           partyIndex: firstMissingPartyIndex(filing.buyers, bodyText),
           root: dialog,
-          note: "Repeat this for each buyer row; the assistant never clicks Add or Save."
+          note: "Review this buyer row before it is added."
         };
       }
       if (/(?:seller|deductee)/.test(dialogText)) {
@@ -734,7 +741,7 @@
           section: "seller",
           partyIndex: firstMissingPartyIndex(filing.sellers, bodyText),
           root: dialog,
-          note: "Repeat this for each seller row; the assistant never clicks Add or Save."
+          note: "Review this seller row before it is added."
         };
       }
       return {

@@ -106,12 +106,23 @@ async function run(options) {
     while (true) {
       const activePage = await activePortalPage(context.pages()) ?? page;
       const command = (await cli.question(
-        "\nWhen the relevant page/dialog is visible: [Enter] fill · p preview · d diagnose · q quit: "
+        "\nOn Schedule B: [Enter] fill · a add all detail rows · p preview · d diagnose · q quit: "
       )).trim().toLowerCase();
       if (command === "q" || command === "quit") break;
       if (command === "d" || command === "diagnose") {
         const diagnosticPath = await saveLivePageDiagnostics(activePage);
         console.log(`Saved live rendered-page diagnostics: ${diagnosticPath}`);
+        continue;
+      }
+      if (command === "a" || command === "add" || command === "auto") {
+        const summary = await automateDetailRows(activePage, filing);
+        console.log(
+          `\nDetail-row automation complete: ${summary.added} added; ` +
+          `${summary.existing} already present.`
+        );
+        console.log(
+          "Review the saved rows and totals. Continue, submission, and payment were not clicked."
+        );
         continue;
       }
 
@@ -126,7 +137,7 @@ async function run(options) {
       }
       printPortalResult(result);
       console.log(
-        "Use the portal's Add/Save/Continue control yourself, then open the next section and press Enter again."
+        "Use the portal controls yourself, or return to the main Schedule B page and press a to add all detail rows."
       );
     }
   } finally {
@@ -301,7 +312,289 @@ async function saveLivePageDiagnostics(page) {
   return outputPath;
 }
 
-async function fillConditionalControls(page, filing, firstResult) {
+async function automateDetailRows(page, filing) {
+  let added = 0;
+  let existing = 0;
+  try {
+    const initial = await portalDiagnostics(page);
+    if (initial.page !== "Form 141 Schedule B transaction page") {
+      throw new Error(
+        "Open the main Form 141 Schedule B page with no Add Details editor open, then press a."
+      );
+    }
+
+    console.log("\nFilling and validating the main Schedule B fields...");
+    const mainResult = await fillConditionalControls(
+      page,
+      filing,
+      await invokeHelper(page, {
+        type: "FORM141_FILL",
+        filing,
+        overwrite: false
+      })
+    );
+    printPortalResult(mainResult);
+
+    for (let index = 0; index < (filing.buyers ?? []).length; index += 1) {
+      const party = filing.buyers[index];
+      if (party?.pan && await pageContainsText(page, party.pan)) {
+        existing += 1;
+        console.log(`Buyer row ${index + 1} is already present; skipping it.`);
+        continue;
+      }
+      await addDetailRow(page, filing, "buyer", index);
+      added += 1;
+      console.log(`Buyer row ${index + 1} added and accepted.`);
+    }
+
+    for (let index = 0; index < (filing.sellers ?? []).length; index += 1) {
+      const party = filing.sellers[index];
+      if (party?.pan && await pageContainsText(page, party.pan)) {
+        existing += 1;
+        console.log(`Seller row ${index + 1} is already present; skipping it.`);
+        continue;
+      }
+      await addDetailRow(page, filing, "seller", index);
+      added += 1;
+      console.log(`Seller row ${index + 1} added and accepted.`);
+    }
+
+    if (await hasSavedTransactionRow(page, filing)) {
+      existing += 1;
+      console.log("Transaction row is already present; skipping it.");
+    } else {
+      await addDetailRow(page, filing, "transaction");
+      added += 1;
+      console.log("Transaction row added and accepted.");
+    }
+
+    return { added, existing };
+  } catch (error) {
+    let diagnosticNote = "";
+    try {
+      const diagnosticPath = await saveLivePageDiagnostics(page);
+      diagnosticNote = ` Live diagnostics were saved to ${diagnosticPath}.`;
+    } catch {
+      diagnosticNote = " Live diagnostics could not be saved.";
+    }
+    throw new Error(`${error.message || String(error)}${diagnosticNote}`);
+  }
+}
+
+async function addDetailRow(page, filing, section, partyIndex = null) {
+  const sectionLabel = section === "transaction"
+    ? "Transaction"
+    : `${section[0].toUpperCase()}${section.slice(1)} ${partyIndex + 1}`;
+  const addDetails = await sectionAddDetailsButton(page, section);
+  if (!addDetails) {
+    throw new Error(`${sectionLabel}: the Add Details button was not found.`);
+  }
+  if (await addDetails.isDisabled().catch(() => true)) {
+    throw new Error(`${sectionLabel}: the Add Details button is disabled.`);
+  }
+
+  await addDetails.scrollIntoViewIfNeeded();
+  await addDetails.click();
+  await waitForPortalContext(
+    page,
+    (diagnostics) => detailEditorPages(section).includes(diagnostics.page),
+    `${sectionLabel}: the Add Details editor did not open.`
+  );
+
+  const helperOptions = Number.isInteger(partyIndex) ? { partyIndex } : {};
+  let result = await invokeHelper(page, {
+    type: "FORM141_FILL",
+    filing,
+    overwrite: false,
+    ...helperOptions
+  });
+  result = await fillConditionalControls(
+    page,
+    filing,
+    result,
+    helperOptions
+  );
+  printPortalResult(result);
+
+  const unresolved = (result.details ?? []).filter((detail) =>
+    ["missing", "unsupported"].includes(detail.outcome)
+  );
+
+  const add = await waitForEditorAddButton(page, 10_000);
+  if (!add) {
+    const diagnostics = await portalDiagnostics(page);
+    const invalid = diagnostics.visibleControls.filter((control) =>
+      control.ariaInvalid === "true" ||
+      /\bng-invalid\b/.test(control.classes ?? "")
+    );
+    const reason = invalid.length
+      ? `${invalid.length} visible control(s) remain invalid`
+      : unresolved.length
+        ? `${unresolved.length} filing field(s) were not accepted: ` +
+          unresolved.map((detail) => detail.path).join(", ")
+        : "the editor Add button remained disabled";
+    throw new Error(`${sectionLabel}: ${reason}.`);
+  }
+
+  await add.click();
+  await waitForPortalContext(
+    page,
+    (diagnostics) =>
+      diagnostics.page === "Form 141 Schedule B transaction page",
+    `${sectionLabel}: the portal did not close the editor after Add.`,
+    12_000
+  );
+}
+
+async function portalDiagnostics(page) {
+  const diagnostics = await invokeHelper(page, {
+    type: "FORM141_DIAGNOSTICS"
+  });
+  if (!diagnostics?.ok) {
+    throw new Error("Could not inspect the rendered Form 141 page.");
+  }
+  return diagnostics;
+}
+
+async function waitForPortalContext(
+  page,
+  predicate,
+  errorMessage,
+  timeout = 6_000
+) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const diagnostics = await portalDiagnostics(page).catch(() => null);
+    if (diagnostics && predicate(diagnostics)) return diagnostics;
+    await page.waitForTimeout(150);
+  }
+  throw new Error(errorMessage);
+}
+
+function detailEditorPages(section) {
+  const label = section === "transaction"
+    ? "Transaction"
+    : `${section[0].toUpperCase()}${section.slice(1)}`;
+  return [
+    `${label} Add Details inline editor`,
+    `${label} Add Details dialog`
+  ];
+}
+
+async function waitForEditorAddButton(page, timeout) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const buttons = page.locator("button").filter({ hasText: /^\s*Add\s*$/i });
+    for (let index = 0; index < await buttons.count(); index += 1) {
+      const candidate = buttons.nth(index);
+      if (
+        await candidate.isVisible().catch(() => false) &&
+        !await candidate.isDisabled().catch(() => true)
+      ) {
+        return candidate;
+      }
+    }
+    await page.waitForTimeout(150);
+  }
+  return null;
+}
+
+async function sectionAddDetailsButton(page, section) {
+  const buttons = page.locator("button").filter({ hasText: /Add Details/i });
+  const candidates = [];
+  for (let index = 0; index < await buttons.count(); index += 1) {
+    const candidate = buttons.nth(index);
+    if (!(await candidate.isVisible().catch(() => false))) continue;
+    const score = await candidate.evaluate((button, wantedSection) => {
+      const patterns = {
+        buyer: [
+          /details of all buyers/i,
+          /buyer details/i,
+          /\bbuyers?\b/i
+        ],
+        seller: [
+          /details of all (?:deductees|sellers)/i,
+          /(?:seller|deductee) details/i,
+          /\b(?:sellers?|deductees?)\b/i
+        ],
+        transaction: [
+          /transaction details/i,
+          /details of (?:the )?transaction/i,
+          /amount paid.*present (?:transaction|instal)/i,
+          /pan of (?:the )?(?:seller|deductee)/i
+        ]
+      };
+      let node = button.parentElement;
+      for (let depth = 0; node && node !== document.body; depth += 1) {
+        const text = String(node.innerText ?? "").replace(/\s+/g, " ").trim();
+        if (patterns[wantedSection].some((pattern) => pattern.test(text))) {
+          return depth * 10_000 + Math.min(text.length, 9_999);
+        }
+        node = node.parentElement;
+      }
+      return Number.MAX_SAFE_INTEGER;
+    }, section);
+    candidates.push({ candidate, score });
+  }
+  if (!candidates.length) return null;
+
+  const scored = candidates
+    .filter(({ score }) => Number.isSafeInteger(score))
+    .sort((left, right) => left.score - right.score);
+  if (scored.length && scored[0].score < Number.MAX_SAFE_INTEGER) {
+    return scored[0].candidate;
+  }
+
+  // Current Form 141 DOM order is transaction, buyer, seller. Text-based
+  // section matching above remains the primary mapping.
+  const fallbackIndex = { transaction: 0, buyer: 1, seller: 2 }[section];
+  return candidates[fallbackIndex]?.candidate ?? null;
+}
+
+async function pageContainsText(page, value) {
+  return page.evaluate(
+    (wanted) =>
+      String(document.body?.innerText ?? "")
+        .toUpperCase()
+        .includes(String(wanted).trim().toUpperCase()),
+    value
+  );
+}
+
+async function hasSavedTransactionRow(page, filing) {
+  const amount = Number(filing.transaction?.current_payment_amount);
+  const isoDate = String(filing.transaction?.payment_date ?? "");
+  if (!Number.isFinite(amount) || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+    return false;
+  }
+  return page.evaluate(({ expectedAmount, expectedDate }) => {
+    const [year, month, day] = expectedDate.split("-");
+    const datePatterns = [
+      `${day}/${month}/${year}`,
+      `${day}-${month}-${year}`,
+      `${day}.${month}.${year}`
+    ];
+    const rows = [...document.querySelectorAll(
+      "tbody tr, [role='row'], .mat-mdc-row, .mat-row"
+    )];
+    return rows.some((row) => {
+      const text = String(row.innerText ?? "").replace(/\s+/g, " ").trim();
+      if (!datePatterns.some((date) => text.includes(date))) return false;
+      const numericTokens = text.match(/(?:₹\s*)?\d[\d,\s]*(?:\.\d{1,2})?/g) ?? [];
+      return numericTokens.some((token) => {
+        const numeric = Number(token.replace(/[₹,\s]/g, ""));
+        return Number.isFinite(numeric) && Math.abs(numeric - expectedAmount) < 0.01;
+      });
+    });
+  }, { expectedAmount: amount, expectedDate: isoDate });
+}
+
+async function fillConditionalControls(
+  page,
+  filing,
+  firstResult,
+  helperOptions = {}
+) {
   let combined = await repairMaterialDateInputs(
     page,
     filing,
@@ -319,7 +612,8 @@ async function fillConditionalControls(page, filing, firstResult) {
         await invokeHelper(page, {
           type: "FORM141_FILL",
           filing,
-          overwrite: false
+          overwrite: false,
+          ...helperOptions
         })
       )
     );
@@ -682,7 +976,11 @@ Start ordinary Chrome yourself with a non-default user-data directory and local
 remote debugging, then log in before running this command. The CLI attaches to
 that accepted browser; it never launches a Playwright automation profile.
 
+From the main Schedule B page, press a to fill and add the Buyer, Seller, and
+Transaction rows sequentially. Each editor is validated before its Add button
+is clicked.
+
 The CLI never enters credentials, solves CAPTCHA/OTP, submits the form, creates a
-payment, or authorizes payment.
+payment, clicks Continue, or authorizes payment.
 `.trim());
 }

@@ -60,8 +60,9 @@ For a live run, first follow
 [Attach to an accepted Chrome session](docs/ATTACH_EXISTING_CHROME.md). Start
 ordinary Chrome yourself, log in, and open Form 141 Schedule B. After you type
 `REVIEWED`, the CLI attaches to that accepted browser and fills the current page
-or dialog. It does not launch the Playwright-managed profile that the portal
-previously rejected.
+or dialog. From the main Schedule B page, press `a` to open, fill, validate, and
+add every Buyer, Seller, and Transaction row in sequence. It does not launch the
+Playwright-managed profile that the portal previously rejected.
 
 Use an existing candidate JSON with:
 
@@ -199,7 +200,10 @@ native and Angular dropdowns and reports any option it cannot select.
 - The content script is restricted to `www.incometax.gov.in` and
   `eportal.incometax.gov.in`.
 - Visible blank fields are the default fill target.
-- Add, Save, Continue, submission, and payment controls are never clicked.
+- The CLI clicks only **Add Details** and the row editor's **Add** button after
+  the user explicitly selects its `a` workflow. It does not click Save as
+  Draft, Continue, submission, challan, or payment controls. The extension
+  never clicks portal action buttons.
 - The extension does not request cookie, history, download, web-request,
   clipboard, or all-sites access.
 
