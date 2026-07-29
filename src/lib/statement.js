@@ -335,6 +335,56 @@ function isPan(value) {
   return /^[A-Z]{5}\d{4}[A-Z]$/i.test(cleanValue(value));
 }
 
+function parsePropertyAddress(addressText) {
+  const parts = String(addressText ?? "")
+    .split(",")
+    .map(cleanValue)
+    .filter(Boolean);
+  if (!parts.length) return null;
+
+  const pincodeIndex = parts.findLastIndex((part) => /^\d{6}$/.test(part));
+  const pincode = pincodeIndex >= 0 ? parts[pincodeIndex] : null;
+  const beforePin = pincodeIndex >= 0 ? parts.slice(0, pincodeIndex) : [...parts];
+  const countryIndex = beforePin.findLastIndex((part) =>
+    /^(?:india|bharat)$/i.test(part)
+  );
+  const country = countryIndex >= 0 ? beforePin[countryIndex] : null;
+  const geographic = countryIndex >= 0
+    ? beforePin.slice(0, countryIndex)
+    : beforePin;
+  const state = geographic.pop() ?? null;
+  const district = geographic.pop() ?? null;
+  const postOfficeIndex = geographic.findLastIndex((part) =>
+    /\b(?:B\.?O\.?|H\.?O\.?|S\.?O\.?)$/i.test(part)
+  );
+  const postOffice = postOfficeIndex >= 0
+    ? geographic.splice(postOfficeIndex, 1)[0]
+    : null;
+  const area = geographic.pop() ?? null;
+  while (
+    geographic.length &&
+    compactAddressPart(geographic.at(-1)) === compactAddressPart(area)
+  ) {
+    geographic.pop();
+  }
+  const flatParts = geographic.splice(0, Math.min(2, geographic.length));
+
+  return {
+    flat_or_building: flatParts.join(", ") || null,
+    street: geographic.join(", ") || null,
+    area,
+    state,
+    district,
+    post_office: postOffice,
+    pincode,
+    country
+  };
+}
+
+function compactAddressPart(value) {
+  return cleanValue(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function parsePercent(value) {
   return parseRate(value);
 }
@@ -408,6 +458,9 @@ function parseChallanStatementText(text) {
       .flat()
       .join(" ")
       .trim() || null;
+    result.property.raw_address = parsePropertyAddress(
+      result.property.address_text
+    );
 
     const saleData = findDataRow(
       rows,

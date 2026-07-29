@@ -63,6 +63,8 @@ test("parses the official challan statement table layout", () => {
   assert.equal(result.sellers.length, 1);
   assert.equal(result.property.agreement_date, "2024-06-04");
   assert.equal(result.property.consideration_value, 1_500_000);
+  assert.equal(result.property.raw_address.pincode, "560000");
+  assert.equal(result.property.raw_address.country, "INDIA");
   assert.equal(result.transaction.cumulative_previous_installments, 100_000);
   assert.equal(result.transaction.current_payment_amount, 200_000);
   assert.equal(result.tax_deposit.rate_percent, 1);

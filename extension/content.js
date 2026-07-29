@@ -374,6 +374,60 @@
       ["propertyAddress", "addressOfProperty"]
     );
     add(
+      "property.raw_address.flat_or_building",
+      filing.property?.raw_address?.flat_or_building,
+      [/flat.*building/i, /door.*building/i],
+      "text",
+      0,
+      "main",
+      ["flatBuilding", "flatAddress"]
+    );
+    add(
+      "property.raw_address.street",
+      filing.property?.raw_address?.street,
+      [/road.*street/i, /street.*block.*sector/i],
+      "text",
+      0,
+      "main",
+      ["roadStreet", "streetAddress"]
+    );
+    add(
+      "property.raw_address.pincode",
+      filing.property?.raw_address?.pincode,
+      [/pin code/i, /pincode/i],
+      "text",
+      0,
+      "main",
+      ["pincode", "pinCode"]
+    );
+    add(
+      "property.raw_address.post_office",
+      filing.property?.raw_address?.post_office,
+      [/post office/i],
+      "select",
+      0,
+      "main",
+      ["postOffice"]
+    );
+    add(
+      "property.raw_address.area",
+      filing.property?.raw_address?.area,
+      [/area.*locality/i, /^area$/i],
+      "select",
+      0,
+      "main",
+      ["area"]
+    );
+    add(
+      "property.raw_address.district",
+      filing.property?.raw_address?.district,
+      [/district/i],
+      "select",
+      0,
+      "main",
+      ["district"]
+    );
+    add(
       "property.agreement_date",
       filing.property?.agreement_date,
       [/date of agreement/i, /agreement.*date/i],
