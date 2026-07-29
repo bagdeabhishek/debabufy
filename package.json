@@ -27,8 +27,8 @@
     "start": "electron .",
     "test": "node --test",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win nsis",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win nsis --publish never",
     "cli:form141": "node workflows/form-141/cli.js"
   },
   "dependencies": {
