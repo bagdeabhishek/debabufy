@@ -20,8 +20,9 @@ browser-store package.
 - [ ] Install the CLI `.tgz` into an empty temporary directory and run
       `form141-assistant --help`.
 - [ ] Run the synthetic CLI dry run.
-- [ ] Confirm the CLI uses a separate browser profile and stops before Add,
-      Save, Continue, submission, and payment.
+- [ ] Confirm the CLI attaches only to a loopback Chrome debugging endpoint,
+      observes `navigator.webdriver === false`, and stops before Add, Save,
+      Continue, submission, and payment.
 - [ ] Install the unpacked extension in a fresh Chrome profile.
 - [ ] Install the temporary extension in a fresh Firefox profile.
 - [ ] Parse synthetic PDF, JSON, and text fixtures.

@@ -19,6 +19,10 @@ All notable changes will be documented in this file.
 - Added an opt-in, session-only diagnostic recorder for redacted page/control
   schemas, API key/type paths, status codes, and runtime errors, plus a remote
   computer-use test runbook.
+- Replaced the portal-rejected Playwright-launched profile with an attach-only
+  CLI mode for a manually started and authenticated Chrome session. The runner
+  accepts loopback CDP endpoints only and refuses pages exposing
+  `navigator.webdriver`.
 - Rejects Form 132 TDS certificates with a clear prompt for the prior Form 141
   challan statement.
 - User-first quick start, synthetic dry-run fixture, troubleshooting, support,

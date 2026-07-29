@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import process from "node:process";
 import readline from "node:readline/promises";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -57,27 +55,44 @@ async function run(options) {
   const errors = validateReviewedFiling(filing);
   if (errors.length) throw new Error(errors.join(" "));
 
-  const profile = options.profile ?? defaultProfile();
-  await fs.mkdir(profile, { recursive: true, mode: 0o700 });
-  console.log(`\nOpening ${options.browser} with a separate persistent automation profile.`);
-  console.log(`Profile: ${profile}`);
-
-  const context = await chromium.launchPersistentContext(profile, {
-    channel: options.browser,
-    headless: false,
-    viewport: null,
-    acceptDownloads: false
-  });
+  console.log("\nAttaching to the ordinary Chrome session you started and logged into.");
+  console.log(`DevTools endpoint: ${options.cdp}`);
+  let browser;
+  try {
+    browser = await chromium.connectOverCDP(options.cdp);
+  } catch (error) {
+    throw new Error(
+      `Could not attach to Chrome at ${options.cdp}. Start Chrome with the ` +
+      "documented local remote-debugging command, log in, and retry. " +
+      `Underlying error: ${error.message || String(error)}`
+    );
+  }
+  const context = browser.contexts()[0];
+  if (!context) {
+    throw new Error("The attached Chrome session did not expose a browser context.");
+  }
   await installPageHelper(context);
 
-  try {
-    const pages = context.pages();
-    const page = pages[0] ?? await context.newPage();
-    if (!/^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(page.url())) {
-      await page.goto(PORTAL_URL, { waitUntil: "domcontentloaded" });
-    }
+  const pages = context.pages();
+  const page = latestPortalPage(pages);
+  if (!page) {
+    throw new Error(
+      `No Income Tax portal tab is open in the attached Chrome session. Open ${PORTAL_URL}, ` +
+      "log in, navigate to Form 141 Schedule B, and run the command again."
+    );
+  }
 
-    console.log("\nLog in yourself and open Form 141 → Schedule B.");
+  try {
+    const automationMarker = await page.evaluate(() => navigator.webdriver);
+    if (automationMarker) {
+      throw new Error(
+        "Chrome reports navigator.webdriver=true. This is still an automation-launched " +
+        "browser, so the Income Tax portal may reject it. Close it and use the manual " +
+        "Chrome startup command from docs/ATTACH_EXISTING_CHROME.md."
+      );
+    }
+    console.log(`Attached to accepted Chrome: ${await page.title()} (${page.url()})`);
+    console.log("Browser automation launch marker: absent.");
     console.log("The CLI will never enter credentials, solve CAPTCHA/OTP, submit, or pay.");
 
     while (true) {
@@ -99,7 +114,9 @@ async function run(options) {
       );
     }
   } finally {
-    await context.close();
+    // For connectOverCDP, Browser.close() closes Playwright's transport. The
+    // manually started Chrome process and its tabs remain open.
+    await browser.close();
   }
 
   console.log("\nStopped before submission and payment.");
@@ -224,13 +241,6 @@ function latestPortalPage(pages) {
   );
 }
 
-function defaultProfile() {
-  const base = process.platform === "win32" && process.env.LOCALAPPDATA
-    ? path.join(process.env.LOCALAPPDATA, "Form141Assistant")
-    : path.join(os.homedir(), ".form141-assistant");
-  return path.join(base, "browser-profile");
-}
-
 function money(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed)
@@ -257,12 +267,15 @@ Options:
   --candidate <path>   Existing filing candidate JSON (instead of --statement)
   --amount <rupees>    Current payment amount; required with --statement
   --date <YYYY-MM-DD>  Payment/deduction date; defaults to today
-  --browser <name>     chrome (default) or msedge
-  --profile <path>     Separate persistent automation profile
+  --cdp <url>          Local Chrome DevTools URL; defaults to http://127.0.0.1:9222
   --dry-run            Parse and summarize without opening a browser
   --help               Show this help
 
-The CLI never enters credentials, solves CAPTCHA/OTP, submits the form, creates
-a payment, or authorizes payment.
+Start ordinary Chrome yourself with a non-default user-data directory and local
+remote debugging, then log in before running this command. The CLI attaches to
+that accepted browser; it never launches a Playwright automation profile.
+
+The CLI never enters credentials, solves CAPTCHA/OTP, submits the form, creates a
+payment, or authorizes payment.
 `.trim());
 }

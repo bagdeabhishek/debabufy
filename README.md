@@ -26,9 +26,9 @@ Income Tax portal page.
 | --- | --- |
 | **You provide** | Previous Form 141 Schedule B challan statement, current payment amount, and date |
 | **It proposes** | Carried party/property data, cumulative instalments, TDS, interest, fee, and total |
-| **It can fill** | The current Schedule B page or open Buyer, Seller, or Transaction “Add Details” dialog through a separate Chrome/Edge profile |
+| **It can fill** | The current Schedule B page or open Buyer, Seller, or Transaction “Add Details” dialog in a manually started, accepted Chrome session |
 | **It never does** | Credentials, OTP, CAPTCHA, form submission, challan/payment creation, or payment authorization |
-| **Data handling** | Parsing stays local; the CLI uses a separate browser profile and the extension uses two-hour in-memory proposal storage |
+| **Data handling** | Parsing stays local; the CLI attaches over a loopback-only debugging connection and the extension uses two-hour in-memory proposal storage |
 | **Current status** | Alpha; CLI dry run passes, live portal selector testing is still required |
 
 ## CLI quick start
@@ -56,11 +56,12 @@ npm run cli -- \
   --date 2026-07-28
 ```
 
-The CLI prints no PANs, names, contacts, or addresses. After you type
-`REVIEWED`, it opens a separate persistent Chrome profile. Complete login and
-CAPTCHA/OTP yourself, open Form 141 Schedule B, then press Enter in the terminal
-to fill the current page or dialog. You still click Add, Save, Continue, Submit,
-and Pay yourself.
+For a live run, first follow
+[Attach to an accepted Chrome session](docs/ATTACH_EXISTING_CHROME.md). Start
+ordinary Chrome yourself, log in, and open Form 141 Schedule B. After you type
+`REVIEWED`, the CLI attaches to that accepted browser and fills the current page
+or dialog. It does not launch the Playwright-managed profile that the portal
+previously rejected.
 
 Use an existing candidate JSON with:
 
@@ -68,9 +69,9 @@ Use an existing candidate JSON with:
 npm run cli -- --candidate "/path/to/form141-next-instalment.json"
 ```
 
-The separate browser profile contains portal session data. Its location is
-printed when the CLI starts; remove that directory when you no longer want the
-session retained.
+The manually started Chrome profile contains portal session data. Its location
+is selected in the startup command; remove that directory when you no longer
+want the session retained.
 
 ## Optional extension dry run
 
@@ -189,8 +190,9 @@ native and Angular dropdowns and reports any option it cannot select.
 
 - PDF, JSON, and text parsing happens locally in the CLI or extension popup.
 - There is no analytics, telemetry, advertising, remote API, or backend service.
-- The CLI uses a separate persistent Chrome/Edge profile so portal login can
-  survive restarts. Delete the printed profile directory to remove that session.
+- The CLI attaches to an ordinary Chrome session that you started and logged
+  into yourself. It refuses remote debugging endpoints outside the local
+  machine and does not close the attached browser.
 - The reviewed proposal uses in-memory `storage.session`, expires after two
   hours, and is cleared on restart, extension reload/update/disable, or
   **Clear**.

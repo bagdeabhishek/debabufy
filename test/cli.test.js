@@ -7,14 +7,24 @@ test("parses statement CLI arguments", () => {
     "--statement", "previous.pdf",
     "--amount", "500000",
     "--date", "2026-07-28",
-    "--browser", "msedge",
+    "--cdp", "http://localhost:9222",
     "--dry-run"
   ]);
   assert.match(result.statement, /previous\.pdf$/);
   assert.equal(result.amount, "500000");
   assert.equal(result.date, "2026-07-28");
-  assert.equal(result.browser, "msedge");
+  assert.equal(result.cdp, "http://localhost:9222");
   assert.equal(result.dryRun, true);
+});
+
+test("only attaches to a local Chrome debugging endpoint", () => {
+  assert.throws(
+    () => parseCliArgs([
+      "--candidate", "candidate.json",
+      "--cdp", "http://192.0.2.1:9222"
+    ]),
+    /loopback/
+  );
 });
 
 test("requires one input source and an amount for statements", () => {

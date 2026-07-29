@@ -42,9 +42,11 @@ response shapes, but must store only endpoint paths, HTTP status codes, and JSON
 key/type paths. It must never store headers, cookies, tokens, or request/response
 values.
 
-The CLI deliberately uses a separate persistent browser profile so the user can
-complete portal login. That directory may contain authentication/session data:
-do not share or back it up, and delete it when persistence is no longer wanted.
-The CLI must never target the user's ordinary Chrome/Edge profile.
+The CLI attaches only to a manually started Chrome instance over a loopback
+debugging endpoint. Chrome requires a dedicated non-default user-data directory;
+that directory may contain authentication/session data, so do not share or back
+it up and delete it when persistence is no longer wanted. The CLI must refuse
+non-loopback debugging endpoints and must never launch an automation browser for
+the live portal.
 
 Changes affecting these boundaries require explicit security and privacy review.

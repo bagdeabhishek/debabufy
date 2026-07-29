@@ -2,7 +2,7 @@ import path from "node:path";
 
 export function parseCliArgs(argv) {
   const options = {
-    browser: "chrome",
+    cdp: "http://127.0.0.1:9222",
     date: localDate(),
     dryRun: false,
     help: false
@@ -20,7 +20,7 @@ export function parseCliArgs(argv) {
     }
     if (argument === "--statement" || argument === "--candidate" ||
         argument === "--amount" || argument === "--date" ||
-        argument === "--browser" || argument === "--profile") {
+        argument === "--cdp") {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) {
         throw new Error(`${argument} requires a value.`);
@@ -42,13 +42,20 @@ export function parseCliArgs(argv) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(options.date)) {
     throw new Error("--date must use YYYY-MM-DD.");
   }
-  if (!["chrome", "msedge"].includes(options.browser)) {
-    throw new Error("--browser must be chrome or msedge.");
+  try {
+    const cdp = new URL(options.cdp);
+    if (
+      !["http:", "https:", "ws:", "wss:"].includes(cdp.protocol) ||
+      !["127.0.0.1", "localhost", "::1"].includes(cdp.hostname)
+    ) {
+      throw new Error();
+    }
+  } catch {
+    throw new Error("--cdp must be a loopback Chrome DevTools URL.");
   }
 
   if (options.statement) options.statement = path.resolve(options.statement);
   if (options.candidate) options.candidate = path.resolve(options.candidate);
-  if (options.profile) options.profile = path.resolve(options.profile);
   return options;
 }
 

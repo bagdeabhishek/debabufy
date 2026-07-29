@@ -3,11 +3,13 @@
 Start by confirming that the latest build passed CI and that the Income Tax
 portal tab was reloaded after installing or updating the extension.
 
-## The CLI cannot launch Chrome or Edge
+## The CLI cannot attach to Chrome
 
-Install the selected browser and confirm it opens normally. The CLI uses
-Playwright's `chrome` channel by default; pass `--browser msedge` to use
-Microsoft Edge. It intentionally does not reuse your normal browser profile.
+The CLI no longer launches a Playwright-managed browser because the Income Tax
+portal rejected that automation profile. Follow
+[Attach to an accepted Chrome session](ATTACH_EXISTING_CHROME.md): start Chrome
+yourself with a loopback debugging port and dedicated user-data directory, log
+in manually, open Form 141, and then run the CLI.
 
 ## The CLI fills the wrong section or finds too few fields
 

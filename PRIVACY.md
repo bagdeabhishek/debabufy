@@ -17,9 +17,10 @@ references, dates, and monetary values.
 
 - PDF, JSON, and text parsing happens locally within the CLI or extension popup.
 - The project makes no analytics, telemetry, advertising, or remote API request.
-- The CLI launches an installed Chrome/Edge browser with a separate persistent
-  profile. That profile is stored on the user's computer and may contain Income
-  Tax portal cookies and session data until the user deletes it.
+- The CLI attaches to an ordinary Chrome instance that the user starts with a
+  dedicated profile and loopback-only debugging endpoint. That profile is
+  stored on the user's computer and may contain Income Tax portal cookies and
+  session data until the user deletes it.
 - A reviewed proposal is held in the browser's in-memory extension session
   storage so it can survive portal navigation.
 - The proposal expires after two hours and is cleared on browser restart,
@@ -27,8 +28,8 @@ references, dates, and monetary values.
 - There is no disk-backed storage fallback.
 - The content script receives the reviewed proposal only when the user invokes
   preview or fill on an official Income Tax portal page.
-- The CLI passes the reviewed proposal only to the official portal page opened
-  in its Playwright-controlled browser context.
+- The CLI passes the reviewed proposal only to the official portal tab in the
+  locally attached Chrome session.
 - The optional diagnostic recorder stores only value-redacted page/control
   schemas, Income Tax payment-API endpoint paths, JSON key/type paths, HTTP
   status codes, and redacted runtime errors in extension session memory.
