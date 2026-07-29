@@ -40,7 +40,7 @@ review screen is planned, but is not claimed as complete yet.
 
 ## Install a release
 
-Download the Windows installer or portable build from
+Download the Windows installer from
 [GitHub Releases](https://github.com/bagdeabhishek/debabufy/releases).
 The builds are currently unsigned, so Windows may display a SmartScreen
 warning. Verify the release and checksum before running it.
