@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  detailSectionIndex,
   expectedBuyerShare,
   filingWithPortalBuyerShare
 } from "../src/lib/portal.js";
@@ -27,4 +28,11 @@ test("multiple portal buyers retain their reviewed shares", () => {
   assert.equal(expectedBuyerShare(filing, 0), 40);
   assert.equal(expectedBuyerShare(filing, 1), 60);
   assert.equal(filingWithPortalBuyerShare(filing), filing);
+});
+
+test("Form 141 detail buttons follow buyer, seller, transaction order", () => {
+  assert.equal(detailSectionIndex("buyer"), 0);
+  assert.equal(detailSectionIndex("seller"), 1);
+  assert.equal(detailSectionIndex("transaction"), 2);
+  assert.equal(detailSectionIndex("unknown"), null);
 });

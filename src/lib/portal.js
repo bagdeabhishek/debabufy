@@ -16,3 +16,12 @@ export function filingWithPortalBuyerShare(filing) {
     ]
   };
 }
+
+export function detailSectionIndex(section) {
+  const indexes = {
+    buyer: 0,
+    seller: 1,
+    transaction: 2
+  };
+  return indexes[section] ?? null;
+}

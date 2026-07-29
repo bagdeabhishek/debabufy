@@ -13,6 +13,7 @@ import {
 } from "../src/lib/infer.js";
 import { extractPdfText } from "../src/lib/pdf.js";
 import {
+  detailSectionIndex,
   expectedBuyerShare,
   filingWithPortalBuyerShare
 } from "../src/lib/portal.js";
@@ -483,11 +484,17 @@ async function addDetailRow(page, filing, section, partyIndex = null) {
 
   await addDetails.scrollIntoViewIfNeeded();
   await addDetails.click();
-  await waitForPortalContext(
+  const opened = await waitForPortalContext(
     page,
-    (diagnostics) => detailEditorPages(section).includes(diagnostics.page),
-    `${sectionLabel}: the Add Details editor did not open.`
+    (diagnostics) => isAnyDetailEditor(diagnostics.page),
+    `${sectionLabel}: no Add Details editor opened.`
   );
+  if (!detailEditorPages(section).includes(opened.page)) {
+    await cancelOpenDetailEditor(page);
+    throw new Error(
+      `${sectionLabel}: the portal opened ${opened.page} instead of the requested editor; it was cancelled.`
+    );
+  }
 
   const helperOptions = Number.isInteger(partyIndex) ? { partyIndex } : {};
   const portalFiling = section === "buyer"
@@ -572,6 +579,33 @@ function detailEditorPages(section) {
   ];
 }
 
+function isAnyDetailEditor(pageName) {
+  return ["buyer", "seller", "transaction"].some((section) =>
+    detailEditorPages(section).includes(pageName)
+  );
+}
+
+async function cancelOpenDetailEditor(page) {
+  const buttons = page.locator("button").filter({ hasText: /^\s*Cancel\s*$/i });
+  for (let index = 0; index < await buttons.count(); index += 1) {
+    const candidate = buttons.nth(index);
+    if (
+      await candidate.isVisible().catch(() => false) &&
+      !await candidate.isDisabled().catch(() => true)
+    ) {
+      await candidate.click();
+      await waitForPortalContext(
+        page,
+        (diagnostics) =>
+          diagnostics.page === "Form 141 Schedule B transaction page",
+        "The mismatched Add Details editor could not be cancelled."
+      );
+      return;
+    }
+  }
+  throw new Error("The mismatched Add Details editor has no usable Cancel button.");
+}
+
 async function waitForEditorAddButton(page, timeout) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -641,50 +675,10 @@ async function sectionAddDetailsButton(page, section) {
   for (let index = 0; index < await buttons.count(); index += 1) {
     const candidate = buttons.nth(index);
     if (!(await candidate.isVisible().catch(() => false))) continue;
-    const score = await candidate.evaluate((button, wantedSection) => {
-      const patterns = {
-        buyer: [
-          /details of all buyers/i,
-          /buyer details/i,
-          /\bbuyers?\b/i
-        ],
-        seller: [
-          /details of all (?:deductees|sellers)/i,
-          /(?:seller|deductee) details/i,
-          /\b(?:sellers?|deductees?)\b/i
-        ],
-        transaction: [
-          /transaction details/i,
-          /details of (?:the )?transaction/i,
-          /amount paid.*present (?:transaction|instal)/i,
-          /pan of (?:the )?(?:seller|deductee)/i
-        ]
-      };
-      let node = button.parentElement;
-      for (let depth = 0; node && node !== document.body; depth += 1) {
-        const text = String(node.innerText ?? "").replace(/\s+/g, " ").trim();
-        if (patterns[wantedSection].some((pattern) => pattern.test(text))) {
-          return depth * 10_000 + Math.min(text.length, 9_999);
-        }
-        node = node.parentElement;
-      }
-      return Number.MAX_SAFE_INTEGER;
-    }, section);
-    candidates.push({ candidate, score });
+    candidates.push(candidate);
   }
-  if (!candidates.length) return null;
-
-  const scored = candidates
-    .filter(({ score }) => Number.isSafeInteger(score))
-    .sort((left, right) => left.score - right.score);
-  if (scored.length && scored[0].score < Number.MAX_SAFE_INTEGER) {
-    return scored[0].candidate;
-  }
-
-  // Current Form 141 DOM order is buyer, seller, transaction. Text-based
-  // section matching above remains the primary mapping.
-  const fallbackIndex = { buyer: 0, seller: 1, transaction: 2 }[section];
-  return candidates[fallbackIndex]?.candidate ?? null;
+  const index = detailSectionIndex(section);
+  return index == null ? null : candidates[index] ?? null;
 }
 
 async function partyTableRow(page, party) {
