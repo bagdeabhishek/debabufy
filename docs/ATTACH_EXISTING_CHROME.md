@@ -47,9 +47,12 @@ to that same browser over a loopback-only Chrome DevTools connection.
    ```
 
 8. After confirming the proposal, leave the main Schedule B page visible and
-   press `a` in the CLI. It will add missing Buyer rows, then Seller rows, then
-   the Transaction row. It validates every open editor before clicking
-   **Add**, and stops on the main page without clicking Continue.
+   press `a` in the CLI. It first selects and edits any incomplete buyer row
+   pre-created for the logged-in user, then adds missing Buyer rows, Seller
+   rows, and the Transaction row. One buyer is assigned 100%; multiple buyers
+   use the reviewed statement shares. It validates every open editor before
+   clicking **Add** or **Update**, and stops on the main page without clicking
+   Continue.
 
 The assistant defaults to `http://127.0.0.1:9222`. It refuses non-loopback CDP
 addresses and checks that `navigator.webdriver` is not enabled before touching

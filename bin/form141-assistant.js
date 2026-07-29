@@ -12,6 +12,10 @@ import {
   validateReviewedFiling
 } from "../src/lib/infer.js";
 import { extractPdfText } from "../src/lib/pdf.js";
+import {
+  expectedBuyerShare,
+  filingWithPortalBuyerShare
+} from "../src/lib/portal.js";
 import { normalizeStatementJson, parseStatementText } from "../src/lib/statement.js";
 
 const PORTAL_URL = "https://www.incometax.gov.in/iec/foportal/";
@@ -118,7 +122,7 @@ async function run(options) {
         const summary = await automateDetailRows(activePage, filing);
         console.log(
           `\nDetail-row automation complete: ${summary.added} added; ` +
-          `${summary.existing} already present.`
+          `${summary.updated} updated; ${summary.existing} already present.`
         );
         console.log(
           "Review the saved rows and totals. Continue, submission, and payment were not clicked."
@@ -315,6 +319,7 @@ async function saveLivePageDiagnostics(page) {
 async function automateDetailRows(page, filing) {
   let added = 0;
   let existing = 0;
+  let updated = 0;
   try {
     const initial = await portalDiagnostics(page);
     if (initial.page !== "Form 141 Schedule B transaction page") {
@@ -335,13 +340,25 @@ async function automateDetailRows(page, filing) {
     );
     printPortalResult(mainResult);
 
+    const missingBuyerIndexes = [];
     for (let index = 0; index < (filing.buyers ?? []).length; index += 1) {
       const party = filing.buyers[index];
-      if (party?.pan && await pageContainsText(page, party.pan)) {
-        existing += 1;
-        console.log(`Buyer row ${index + 1} is already present; skipping it.`);
+      const row = await partyTableRow(page, party);
+      if (!row) {
+        missingBuyerIndexes.push(index);
         continue;
       }
+      if (await rowContainsPercentage(row, expectedBuyerShare(filing, index))) {
+        existing += 1;
+        console.log(`Buyer row ${index + 1} is already complete; skipping it.`);
+        continue;
+      }
+      await editExistingBuyerRow(page, filing, index, row);
+      updated += 1;
+      console.log(`Buyer row ${index + 1} was updated with its ownership share.`);
+    }
+
+    for (const index of missingBuyerIndexes) {
       await addDetailRow(page, filing, "buyer", index);
       added += 1;
       console.log(`Buyer row ${index + 1} added and accepted.`);
@@ -349,7 +366,7 @@ async function automateDetailRows(page, filing) {
 
     for (let index = 0; index < (filing.sellers ?? []).length; index += 1) {
       const party = filing.sellers[index];
-      if (party?.pan && await pageContainsText(page, party.pan)) {
+      if (await partyTableRow(page, party)) {
         existing += 1;
         console.log(`Seller row ${index + 1} is already present; skipping it.`);
         continue;
@@ -368,7 +385,7 @@ async function automateDetailRows(page, filing) {
       console.log("Transaction row added and accepted.");
     }
 
-    return { added, existing };
+    return { added, existing, updated };
   } catch (error) {
     let diagnosticNote = "";
     try {
@@ -378,6 +395,77 @@ async function automateDetailRows(page, filing) {
       diagnosticNote = " Live diagnostics could not be saved.";
     }
     throw new Error(`${error.message || String(error)}${diagnosticNote}`);
+  }
+}
+
+async function editExistingBuyerRow(page, filing, partyIndex, row) {
+  const checkbox = row.locator("input[type='checkbox']").first();
+  if (!(await checkbox.isVisible().catch(() => false))) {
+    throw new Error(
+      `Buyer ${partyIndex + 1}: the existing row's selection checkbox was not found.`
+    );
+  }
+  if (!(await checkbox.isChecked().catch(() => false))) {
+    await checkbox.check().catch(async () => {
+      await checkbox.click({ force: true });
+    });
+  }
+
+  const edit = await waitForEnabledActionButton(page, "edit", 5_000);
+  if (!edit) {
+    throw new Error(
+      `Buyer ${partyIndex + 1}: selecting the existing row did not enable Edit.`
+    );
+  }
+  await edit.click();
+  await waitForPortalContext(
+    page,
+    (diagnostics) => detailEditorPages("buyer").includes(diagnostics.page),
+    `Buyer ${partyIndex + 1}: the Edit Details editor did not open.`
+  );
+
+  const helperOptions = { partyIndex };
+  const portalFiling = filingWithPortalBuyerShare(filing);
+  let result = await invokeHelper(page, {
+    type: "FORM141_FILL",
+    filing: portalFiling,
+    overwrite: false,
+    ...helperOptions
+  });
+  result = await fillConditionalControls(
+    page,
+    portalFiling,
+    result,
+    helperOptions
+  );
+  printPortalResult(result);
+
+  const commit = await waitForEditorCommitButton(page, 10_000);
+  if (!commit) {
+    throw new Error(
+      `Buyer ${partyIndex + 1}: the editor Update/Save button remained disabled.`
+    );
+  }
+  await commit.click();
+  await waitForPortalContext(
+    page,
+    (diagnostics) =>
+      diagnostics.page === "Form 141 Schedule B transaction page",
+    `Buyer ${partyIndex + 1}: the portal did not close the editor after Update.`,
+    12_000
+  );
+
+  const updatedRow = await partyTableRow(page, filing.buyers[partyIndex]);
+  if (
+    !updatedRow ||
+    !await rowContainsPercentage(
+      updatedRow,
+      expectedBuyerShare(filing, partyIndex)
+    )
+  ) {
+    throw new Error(
+      `Buyer ${partyIndex + 1}: the saved row does not show the expected ownership share.`
+    );
   }
 }
 
@@ -402,15 +490,18 @@ async function addDetailRow(page, filing, section, partyIndex = null) {
   );
 
   const helperOptions = Number.isInteger(partyIndex) ? { partyIndex } : {};
+  const portalFiling = section === "buyer"
+    ? filingWithPortalBuyerShare(filing)
+    : filing;
   let result = await invokeHelper(page, {
     type: "FORM141_FILL",
-    filing,
+    filing: portalFiling,
     overwrite: false,
     ...helperOptions
   });
   result = await fillConditionalControls(
     page,
-    filing,
+    portalFiling,
     result,
     helperOptions
   );
@@ -499,6 +590,51 @@ async function waitForEditorAddButton(page, timeout) {
   return null;
 }
 
+async function waitForEditorCommitButton(page, timeout) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const buttons = page.locator("button");
+    for (let index = 0; index < await buttons.count(); index += 1) {
+      const candidate = buttons.nth(index);
+      if (!(await candidate.isVisible().catch(() => false))) continue;
+      const text = String(await candidate.innerText().catch(() => ""))
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      const words = text.split(" ").filter(Boolean);
+      if (
+        words.length <= 2 &&
+        words.some((word) => ["update", "save", "add"].includes(word)) &&
+        !await candidate.isDisabled().catch(() => true)
+      ) {
+        return candidate;
+      }
+    }
+    await page.waitForTimeout(150);
+  }
+  return null;
+}
+
+async function waitForEnabledActionButton(page, action, timeout) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const buttons = page.locator("button").filter({
+      hasText: new RegExp(action, "i")
+    });
+    for (let index = 0; index < await buttons.count(); index += 1) {
+      const candidate = buttons.nth(index);
+      if (
+        await candidate.isVisible().catch(() => false) &&
+        !await candidate.isDisabled().catch(() => true)
+      ) {
+        return candidate;
+      }
+    }
+    await page.waitForTimeout(150);
+  }
+  return null;
+}
+
 async function sectionAddDetailsButton(page, section) {
   const buttons = page.locator("button").filter({ hasText: /Add Details/i });
   const candidates = [];
@@ -545,20 +681,49 @@ async function sectionAddDetailsButton(page, section) {
     return scored[0].candidate;
   }
 
-  // Current Form 141 DOM order is transaction, buyer, seller. Text-based
+  // Current Form 141 DOM order is buyer, seller, transaction. Text-based
   // section matching above remains the primary mapping.
-  const fallbackIndex = { transaction: 0, buyer: 1, seller: 2 }[section];
+  const fallbackIndex = { buyer: 0, seller: 1, transaction: 2 }[section];
   return candidates[fallbackIndex]?.candidate ?? null;
 }
 
-async function pageContainsText(page, value) {
-  return page.evaluate(
-    (wanted) =>
-      String(document.body?.innerText ?? "")
-        .toUpperCase()
-        .includes(String(wanted).trim().toUpperCase()),
-    value
+async function partyTableRow(page, party) {
+  const pan = String(party?.pan ?? "").trim().toUpperCase();
+  const name = String(party?.name ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+  if (!pan && !name) return null;
+
+  const rows = page.locator(
+    "tbody tr, [role='row'], .mat-mdc-row, .mat-row"
   );
+  for (let index = 0; index < await rows.count(); index += 1) {
+    const row = rows.nth(index);
+    if (!(await row.isVisible().catch(() => false))) continue;
+    const text = String(await row.innerText().catch(() => ""))
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, " ");
+    if (
+      (pan && text.includes(pan)) ||
+      (name && text.includes(name))
+    ) {
+      return row;
+    }
+  }
+  return null;
+}
+
+async function rowContainsPercentage(row, percentage) {
+  const expected = Number(percentage);
+  if (!Number.isFinite(expected)) return false;
+  const text = String(await row.innerText().catch(() => ""));
+  const tokens = text.match(/\d+(?:\.\d+)?\s*%?/g) ?? [];
+  return tokens.some((token) => {
+    const numeric = Number(token.replace("%", "").trim());
+    return Number.isFinite(numeric) && Math.abs(numeric - expected) < 0.001;
+  });
 }
 
 async function hasSavedTransactionRow(page, filing) {
@@ -978,7 +1143,8 @@ that accepted browser; it never launches a Playwright automation profile.
 
 From the main Schedule B page, press a to fill and add the Buyer, Seller, and
 Transaction rows sequentially. Each editor is validated before its Add button
-is clicked.
+is clicked. A pre-created logged-in buyer row is updated first; a sole buyer is
+assigned 100%, while multiple buyers use the reviewed shares.
 
 The CLI never enters credentials, solves CAPTCHA/OTP, submits the form, creates a
 payment, clicks Continue, or authorizes payment.

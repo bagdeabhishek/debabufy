@@ -34,7 +34,9 @@ explicit review, the CLI attaches to that already accepted tab. You open each
 Schedule B section/dialog and press Enter to fill only the current view.
 Alternatively, return to the main Schedule B page and press `a`: the CLI opens,
 fills, validates, and adds every Buyer, Seller, and Transaction row
-sequentially. It never clicks Save as Draft, Continue, Submit, or Pay.
+sequentially. It first updates the incomplete buyer row that the portal creates
+for the logged-in user. A single buyer is assigned 100%; multiple buyers use
+the reviewed shares. It never clicks Save as Draft, Continue, Submit, or Pay.
 
 ## Option A: build from source
 

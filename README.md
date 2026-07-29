@@ -61,7 +61,10 @@ For a live run, first follow
 ordinary Chrome yourself, log in, and open Form 141 Schedule B. After you type
 `REVIEWED`, the CLI attaches to that accepted browser and fills the current page
 or dialog. From the main Schedule B page, press `a` to open, fill, validate, and
-add every Buyer, Seller, and Transaction row in sequence. It does not launch the
+add every Buyer, Seller, and Transaction row in sequence. If the portal has
+pre-created the logged-in buyer without an ownership share, the CLI selects and
+updates that row before adding another buyer. A single buyer is entered as
+100%; multiple buyers use the reviewed statement shares. It does not launch the
 Playwright-managed profile that the portal previously rejected.
 
 Use an existing candidate JSON with:
