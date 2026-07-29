@@ -226,6 +226,7 @@ async function installPageHelper(context) {
     "utf8"
   );
   const mock = `
+    globalThis.__form141ScheduleBAssistantLoaded = false;
     globalThis.__form141CliListener = null;
     globalThis.__form141CliApi = {
       runtime: {
@@ -239,6 +240,9 @@ async function installPageHelper(context) {
   `;
   await context.addInitScript({ content: `${mock}\n${source}` });
   for (const page of context.pages()) {
+    if (!/^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(page.url())) {
+      continue;
+    }
     await injectCurrentDocument(page, mock, source);
   }
 }
@@ -246,8 +250,17 @@ async function installPageHelper(context) {
 async function injectCurrentDocument(page, mock, source) {
   try {
     await page.evaluate(`${mock}\n${source}`);
-  } catch {
-    // Non-portal startup pages may reject evaluation while navigating.
+    const installed = await page.evaluate(
+      () => typeof globalThis.__form141CliListener === "function"
+    );
+    if (!installed) {
+      throw new Error("the helper listener was not registered");
+    }
+  } catch (error) {
+    throw new Error(
+      `Could not install the portal helper in the current Form 141 page: ` +
+      `${error.message || String(error)}`
+    );
   }
 }
 
