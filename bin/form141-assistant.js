@@ -207,7 +207,14 @@ function printPortalResult(result) {
     .map((detail) => detail.path);
   if (unresolved.length) console.log(`Unresolved: ${unresolved.join(", ")}`);
   const mapped = (result.details ?? []).filter((detail) =>
-    ["matched", "filled", "filled-native", "already-populated", "unsupported"]
+    [
+      "matched",
+      "filled",
+      "filled-native",
+      "filled-calendar",
+      "already-populated",
+      "unsupported"
+    ]
       .includes(detail.outcome)
   );
   if (mapped.length) {
@@ -295,18 +302,26 @@ async function saveLivePageDiagnostics(page) {
 }
 
 async function fillConditionalControls(page, filing, firstResult) {
-  let combined = await applyNativeInputFallback(page, filing, firstResult);
+  let combined = await repairMaterialDateInputs(
+    page,
+    filing,
+    await applyNativeInputFallback(page, filing, firstResult)
+  );
   for (let pass = 1; pass < 3; pass += 1) {
     if ((combined.filled ?? 0) === 0) break;
     await page.waitForTimeout(500);
-    const next = await applyNativeInputFallback(
+    const next = await repairMaterialDateInputs(
       page,
       filing,
-      await invokeHelper(page, {
-        type: "FORM141_FILL",
+      await applyNativeInputFallback(
+        page,
         filing,
-        overwrite: false
-      })
+        await invokeHelper(page, {
+          type: "FORM141_FILL",
+          filing,
+          overwrite: false
+        })
+      )
     );
     combined = mergeFillResults(combined, next);
     if ((next.filled ?? 0) === 0) break;
@@ -316,15 +331,17 @@ async function fillConditionalControls(page, filing, firstResult) {
 
 async function applyNativeInputFallback(page, filing, result) {
   for (const detail of result.details ?? []) {
-    if (detail.outcome !== "unsupported" || detail.controlTag !== "input") {
-      continue;
-    }
+    if (detail.controlTag !== "input") continue;
     const value = filingValue(filing, detail.path);
     if (value == null || value === "") continue;
     const locator = await visibleControlLocator(page, detail.controlKeys ?? []);
-    if (!locator || !(await locator.isEditable().catch(() => false))) continue;
+    if (!locator) continue;
+    const wasInvalid = await controlIsInvalid(locator);
+    if (detail.outcome !== "unsupported" && !wasInvalid) continue;
+    if (!(await locator.isEditable().catch(() => false))) continue;
 
     const formatted = nativeInputValue(detail.path, value);
+    const wasUnsupported = detail.outcome === "unsupported";
     try {
       await locator.scrollIntoViewIfNeeded();
       await locator.click();
@@ -334,9 +351,9 @@ async function applyNativeInputFallback(page, filing, result) {
       await locator.press("Tab");
       await page.waitForTimeout(350);
       let actual = await locator.inputValue();
-      let invalid = await locator.getAttribute("aria-invalid");
+      let invalid = await controlIsInvalid(locator);
       if (
-        (!String(actual).trim() || invalid === "true") &&
+        (!String(actual).trim() || invalid) &&
         detail.path.endsWith("_date")
       ) {
         await locator.click();
@@ -348,18 +365,20 @@ async function applyNativeInputFallback(page, filing, result) {
         await locator.press("Tab");
         await page.waitForTimeout(350);
         actual = await locator.inputValue();
-        invalid = await locator.getAttribute("aria-invalid");
+        invalid = await controlIsInvalid(locator);
       }
-      if (!String(actual).trim() || invalid === "true") {
-        detail.nativeError = invalid === "true"
+      if (!String(actual).trim() || invalid) {
+        detail.nativeError = invalid
           ? "Portal marked the typed value invalid."
           : "Portal cleared the typed value.";
         continue;
       }
       detail.outcome = "filled-native";
       detail.nativeObserved = "non-empty-valid";
-      result.filled = (result.filled ?? 0) + 1;
-      result.unsupported = Math.max(0, (result.unsupported ?? 0) - 1);
+      if (wasUnsupported) {
+        result.filled = (result.filled ?? 0) + 1;
+        result.unsupported = Math.max(0, (result.unsupported ?? 0) - 1);
+      }
     } catch (error) {
       detail.nativeError = error.message || String(error);
     }
@@ -367,26 +386,171 @@ async function applyNativeInputFallback(page, filing, result) {
   return result;
 }
 
+async function repairMaterialDateInputs(page, filing, result) {
+  for (const detail of result.details ?? []) {
+    if (
+      detail.controlTag !== "input" ||
+      !detail.path.endsWith("_date")
+    ) {
+      continue;
+    }
+    const value = filingValue(filing, detail.path);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) continue;
+    const locator = await visibleControlLocator(page, detail.controlKeys ?? []);
+    if (!locator) continue;
+    const retained = String(await locator.inputValue().catch(() => "")).trim();
+    const invalid = await controlIsInvalid(locator);
+    if (retained && !invalid && detail.outcome !== "unsupported") continue;
+
+    try {
+      const selected = await selectMaterialDate(page, locator, String(value));
+      if (!selected) {
+        detail.nativeError =
+          "Could not select the requested date in the portal calendar.";
+        continue;
+      }
+      await page.waitForTimeout(350);
+      if (await controlIsInvalid(locator)) {
+        detail.nativeError =
+          "Portal marked the calendar-selected date invalid.";
+        continue;
+      }
+      detail.outcome = "filled-calendar";
+      detail.nativeObserved = "calendar-selected-valid";
+      delete detail.nativeError;
+    } catch (error) {
+      detail.nativeError = error.message || String(error);
+    }
+  }
+  return result;
+}
+
+async function selectMaterialDate(page, input, isoDate) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const field = input.locator("xpath=ancestor::mat-form-field[1]");
+  const toggle = field.getByRole("button", { name: /open calendar/i }).first();
+  if (!(await toggle.isVisible().catch(() => false))) return false;
+  await toggle.click();
+
+  const calendar = page.locator(
+    ".mat-datepicker-content:visible, mat-datepicker-content:visible"
+  ).last();
+  await calendar.waitFor({ state: "visible", timeout: 3000 });
+
+  for (let attempt = 0; attempt < 36; attempt += 1) {
+    const matchingCell = await matchingMaterialDateCell(
+      calendar,
+      year,
+      month,
+      day
+    );
+    if (matchingCell) {
+      await matchingCell.click();
+      return true;
+    }
+
+    const periodText = String(
+      await calendar.locator(".mat-calendar-period-button").first()
+        .innerText()
+        .catch(() => "")
+    ).trim();
+    const current = parseMaterialCalendarPeriod(periodText);
+    if (!current) break;
+    const targetIndex = year * 12 + month - 1;
+    const currentIndex = current.year * 12 + current.month - 1;
+    const direction = targetIndex < currentIndex ? "previous" : "next";
+    const navigation = calendar.locator(
+      `.mat-calendar-${direction}-button`
+    ).first();
+    if (!(await navigation.isVisible().catch(() => false))) break;
+    await navigation.click();
+    await page.waitForTimeout(75);
+  }
+
+  await page.keyboard.press("Escape").catch(() => {});
+  return false;
+}
+
+async function matchingMaterialDateCell(calendar, year, month, day) {
+  const monthNames = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december"
+  ];
+  const monthName = monthNames[month - 1];
+  const cells = calendar.locator(
+    ".mat-calendar-body-cell:not(.mat-calendar-body-disabled)"
+  );
+  for (let index = 0; index < await cells.count(); index += 1) {
+    const cell = cells.nth(index);
+    const label = String(await cell.getAttribute("aria-label") ?? "")
+      .trim()
+      .toLowerCase();
+    if (
+      label.includes(String(year)) &&
+      (label.includes(monthName) || label.includes(monthName.slice(0, 3))) &&
+      new RegExp(`(?:^|\\D)${day}(?:\\D|$)`).test(label)
+    ) {
+      return cell;
+    }
+  }
+  return null;
+}
+
+function parseMaterialCalendarPeriod(value) {
+  const match = String(value).trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (!match) return null;
+  const month = [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec"
+  ].findIndex((candidate) => match[1].toLowerCase().startsWith(candidate));
+  if (month < 0) return null;
+  return { month: month + 1, year: Number(match[2]) };
+}
+
+async function controlIsInvalid(locator) {
+  const ariaInvalid = await locator.getAttribute("aria-invalid").catch(() => null);
+  const classes = await locator.getAttribute("class").catch(() => "");
+  return ariaInvalid === "true" || /\bng-invalid\b/.test(classes ?? "");
+}
+
 async function verifyNativeInputFallback(page, result) {
   for (const detail of result.details ?? []) {
-    if (detail.outcome !== "filled-native") continue;
+    if (!["filled-native", "filled-calendar"].includes(detail.outcome)) continue;
     const locator = await visibleControlLocator(page, detail.controlKeys ?? []);
     const retained = locator
       ? String(await locator.inputValue().catch(() => "")).trim()
       : "";
-    const invalid = locator
-      ? await locator.getAttribute("aria-invalid").catch(() => null)
-      : null;
-    if (!retained || invalid === "true") {
+    const invalid = locator ? await controlIsInvalid(locator) : false;
+    if (!retained || invalid) {
       detail.outcome = "unsupported";
       detail.nativeObserved = "cleared-or-invalid-after-angular-update";
-      detail.nativeError = invalid === "true"
+      detail.nativeError = invalid
         ? "Portal marked the value invalid after Angular validation."
         : "Portal cleared the value after Angular validation.";
     }
   }
   result.filled = (result.details ?? []).filter((detail) =>
-    ["filled", "filled-native"].includes(detail.outcome)
+    ["filled", "filled-native", "filled-calendar"].includes(detail.outcome)
   ).length;
   result.unsupported = (result.details ?? []).filter(
     (detail) => detail.outcome === "unsupported"
@@ -442,8 +606,8 @@ function mergeFillResults(first, second) {
     const existing = details.get(detail.path);
     if (
       !existing ||
-      ["filled", "filled-native"].includes(detail.outcome) ||
-      !["filled", "filled-native"].includes(existing.outcome)
+      ["filled", "filled-native", "filled-calendar"].includes(detail.outcome) ||
+      !["filled", "filled-native", "filled-calendar"].includes(existing.outcome)
     ) {
       details.set(detail.path, { ...detail });
     }
@@ -455,7 +619,7 @@ function mergeFillResults(first, second) {
     note: second.note ?? first.note,
     details: mergedDetails,
     filled: mergedDetails.filter((detail) =>
-      ["filled", "filled-native"].includes(detail.outcome)
+      ["filled", "filled-native", "filled-calendar"].includes(detail.outcome)
     ).length,
     skipped: mergedDetails.filter(
       (detail) => detail.outcome === "already-populated"

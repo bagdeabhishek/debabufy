@@ -1120,7 +1120,19 @@
 
   function formatForControl(control, value, label) {
     if (control.type === "date") return String(value);
-    if (/dd.?mm.?yyyy/i.test(control.placeholder ?? "") && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    const isPortalDateControl =
+      control.classList.contains("mat-datepicker-input") ||
+      /date/i.test(
+        `${label} ${control.getAttribute("formcontrolname") ?? ""} ` +
+        `${control.getAttribute("name") ?? ""}`
+      );
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(String(value)) &&
+      (
+        isPortalDateControl ||
+        /dd.?mm.?yyyy/i.test(control.placeholder ?? "")
+      )
+    ) {
       const [year, month, day] = String(value).split("-");
       return `${day}/${month}/${year}`;
     }
