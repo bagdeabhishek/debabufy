@@ -524,7 +524,11 @@
       "number",
       0,
       "transaction",
-      ["prevInstallment", "previousInstallments"]
+      [
+        "prevInstallment",
+        "previousInstallments",
+        "totalAmountPaidPrevInstallments"
+      ]
     );
     add(
       "transaction.current_payment_amount",
@@ -538,7 +542,7 @@
       "number",
       0,
       "transaction",
-      ["amtPaidCurrently", "currentPaymentAmount"]
+      ["amtPaidCurrently", "amountPaidCurrently", "currentPaymentAmount"]
     );
     add(
       "transaction.tax_liable_amount",
@@ -547,7 +551,7 @@
       "number",
       0,
       "transaction",
-      ["taxLiableAmount", "amountLiableForTax"]
+      ["taxLiableAmount", "amountTaxRequired", "amountLiableForTax"]
     );
     add(
       "transaction.payment_date",
@@ -601,7 +605,12 @@
       "number",
       0,
       "transaction",
-      ["amtTDSDeducted", "tdsAmnt", "amountDeducted"]
+      [
+        "amtTDSDeducted",
+        "tdsAmnt",
+        "amountDeducted",
+        "amountTaxDeducted"
+      ]
     );
     add(
       "tax_deposit.interest",
@@ -658,6 +667,9 @@
         /tax applicable/.test(bodyText) &&
         /transfer of immovable property/.test(bodyText)
       );
+
+    const inlineEditor = visibleInlineEditor(filing, bodyText);
+    if (inlineEditor) return inlineEditor;
 
     if (!isForm141 && isLegacy26qb) {
       return {
@@ -756,6 +768,70 @@
       note:
         "Buyer, seller, and transaction rows are inside separate Add Details dialogs. Open one dialog and run Preview/Fill again. The combined property address remains manual."
     };
+  }
+
+  function visibleInlineEditor(filing, bodyText) {
+    const shareControls = [...document.querySelectorAll(
+      "input[name='sharePercentage'], input[formcontrolname='sharePercentage']"
+    )].filter(isVisible);
+    const buyerShare = shareControls.find((control) =>
+      /paid\/credited by the buyer/i.test(descriptor(control))
+    );
+    if (buyerShare) {
+      return {
+        flow: "form-141-schedule-b",
+        page: "Buyer Add Details inline editor",
+        section: "buyer",
+        partyIndex: firstMissingPartyIndex(filing.buyers, bodyText),
+        root: inlineEditorRoot(buyerShare),
+        note: "Review this buyer row, then use the portal's Add action."
+      };
+    }
+
+    const sellerShare = shareControls.find((control) =>
+      /received\/debited by the seller/i.test(descriptor(control))
+    );
+    if (sellerShare) {
+      return {
+        flow: "form-141-schedule-b",
+        page: "Seller Add Details inline editor",
+        section: "seller",
+        partyIndex: firstMissingPartyIndex(filing.sellers, bodyText),
+        root: inlineEditorRoot(sellerShare),
+        note: "Review this seller row, then use the portal's Add action."
+      };
+    }
+
+    const sellerPan = [...document.querySelectorAll(
+      "select[name='sellerPan'], select[formcontrolname='sellerPan']"
+    )].find(isVisible);
+    if (sellerPan) {
+      return {
+        flow: "form-141-schedule-b",
+        page: "Transaction Add Details inline editor",
+        section: "transaction",
+        root: inlineEditorRoot(sellerPan),
+        note: "Review this transaction row, then use the portal's Add action."
+      };
+    }
+    return null;
+  }
+
+  function inlineEditorRoot(control) {
+    let candidate = control.parentElement;
+    while (candidate && candidate !== document.body) {
+      const actionTexts = [...candidate.querySelectorAll("button")]
+        .filter(isVisible)
+        .map((button) => normalize(button.textContent));
+      if (
+        actionTexts.some((text) => /^add$/.test(text)) &&
+        actionTexts.some((text) => /^cancel$/.test(text))
+      ) {
+        return candidate;
+      }
+      candidate = candidate.parentElement;
+    }
+    return control.closest("form") ?? control.parentElement ?? document;
   }
 
   function fieldsForContext(fields, context) {
