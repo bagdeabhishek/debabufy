@@ -88,6 +88,7 @@ test("proposes the next instalment without approving it", () => {
   assert.equal(next.portal.form_flow, "FORM_141_SCHEDULE_B");
   assert.equal(next.portal.month_of_deduction, "Jul-2026");
   assert.equal(next.portal.nature_transaction, "Schedule B");
+  assert.equal(next.portal.installment_sequence, "Subsequent Instalment");
   assert.equal(next.review.approved, false);
   assert.ok(validateReviewedFiling(next).includes("Review must be explicitly approved."));
 

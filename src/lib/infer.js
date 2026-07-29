@@ -132,6 +132,9 @@ export function inferNextFiling(previousInput, options) {
     candidate.portal.nature_transaction = "Schedule B";
     candidate.portal.deductee_type =
       candidate.portal.property_type_label ?? null;
+    if (!/last/i.test(String(previous.portal?.installment_sequence ?? ""))) {
+      candidate.portal.installment_sequence = "Subsequent Instalment";
+    }
   }
   delete candidate.extraction;
 

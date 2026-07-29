@@ -116,11 +116,14 @@ async function run(options) {
       }
 
       const type = command === "p" ? "FORM141_PREVIEW" : "FORM141_FILL";
-      const result = await invokeHelper(activePage, {
+      let result = await invokeHelper(activePage, {
         type,
         filing,
         overwrite: false
       });
+      if (type === "FORM141_FILL") {
+        result = await fillConditionalControls(activePage, filing, result);
+      }
       printPortalResult(result);
       console.log(
         "Use the portal's Add/Save/Continue control yourself, then open the next section and press Enter again."
@@ -204,7 +207,8 @@ function printPortalResult(result) {
     .map((detail) => detail.path);
   if (unresolved.length) console.log(`Unresolved: ${unresolved.join(", ")}`);
   const mapped = (result.details ?? []).filter((detail) =>
-    ["matched", "filled", "already-populated", "unsupported"].includes(detail.outcome)
+    ["matched", "filled", "filled-native", "already-populated", "unsupported"]
+      .includes(detail.outcome)
   );
   if (mapped.length) {
     console.log("Control mappings:");
@@ -287,6 +291,138 @@ async function saveLivePageDiagnostics(page) {
   const outputPath = `form141-live-page-${timestamp}.json`;
   await fs.writeFile(outputPath, `${JSON.stringify(diagnostics, null, 2)}\n`, "utf8");
   return outputPath;
+}
+
+async function fillConditionalControls(page, filing, firstResult) {
+  let combined = await applyNativeInputFallback(page, filing, firstResult);
+  for (let pass = 1; pass < 3; pass += 1) {
+    if ((combined.filled ?? 0) === 0) break;
+    await page.waitForTimeout(500);
+    const next = await applyNativeInputFallback(
+      page,
+      filing,
+      await invokeHelper(page, {
+        type: "FORM141_FILL",
+        filing,
+        overwrite: false
+      })
+    );
+    combined = mergeFillResults(combined, next);
+    if ((next.filled ?? 0) === 0) break;
+  }
+  return combined;
+}
+
+async function applyNativeInputFallback(page, filing, result) {
+  for (const detail of result.details ?? []) {
+    if (detail.outcome !== "unsupported" || detail.controlTag !== "input") {
+      continue;
+    }
+    const value = filingValue(filing, detail.path);
+    if (value == null || value === "") continue;
+    const locator = await visibleControlLocator(page, detail.controlKeys ?? []);
+    if (!locator || !(await locator.isEditable().catch(() => false))) continue;
+
+    const formatted = nativeInputValue(detail.path, value);
+    try {
+      await locator.scrollIntoViewIfNeeded();
+      await locator.click();
+      await locator.fill(formatted);
+      await locator.press("Tab");
+      await page.waitForTimeout(150);
+      let actual = await locator.inputValue();
+      if (!String(actual).trim() && detail.path.endsWith("_date")) {
+        await locator.click();
+        await locator.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+        await locator.pressSequentially(formatted.replace(/\D/g, ""), {
+          delay: 35
+        });
+        await locator.press("Tab");
+        await page.waitForTimeout(150);
+        actual = await locator.inputValue();
+      }
+      if (!String(actual).trim()) continue;
+      detail.outcome = "filled-native";
+      result.filled = (result.filled ?? 0) + 1;
+      result.unsupported = Math.max(0, (result.unsupported ?? 0) - 1);
+    } catch (error) {
+      detail.nativeError = error.message || String(error);
+    }
+  }
+  return result;
+}
+
+async function visibleControlLocator(page, keys) {
+  const selectors = [...new Set(keys)].flatMap((key) => {
+    const quoted = JSON.stringify(String(key));
+    return [
+      `[formcontrolname=${quoted}]`,
+      `[name=${quoted}]`,
+      `[id=${quoted}]`,
+      `[data-field=${quoted}]`
+    ];
+  });
+  if (!selectors.length) return null;
+  const matches = page.locator(selectors.join(", "));
+  for (let index = 0; index < await matches.count(); index += 1) {
+    const candidate = matches.nth(index);
+    if (await candidate.isVisible().catch(() => false)) return candidate;
+  }
+  return null;
+}
+
+function nativeInputValue(fieldPath, value) {
+  if (fieldPath.endsWith("_date") && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    const [year, month, day] = String(value).split("-");
+    return `${day}/${month}/${year}`;
+  }
+  if (
+    /amount|value|rate|share|proportion|interest|fee|total/i.test(fieldPath)
+  ) {
+    return String(value).replace(/[₹,%\s]/g, "");
+  }
+  return String(value);
+}
+
+function filingValue(filing, fieldPath) {
+  return fieldPath
+    .replace(/\[(\d+)\]/g, ".$1")
+    .split(".")
+    .filter(Boolean)
+    .reduce((value, key) => value?.[key], filing);
+}
+
+function mergeFillResults(first, second) {
+  const details = new Map(
+    (first.details ?? []).map((detail) => [detail.path, { ...detail }])
+  );
+  for (const detail of second.details ?? []) {
+    const existing = details.get(detail.path);
+    if (
+      !existing ||
+      ["filled", "filled-native"].includes(detail.outcome) ||
+      !["filled", "filled-native"].includes(existing.outcome)
+    ) {
+      details.set(detail.path, { ...detail });
+    }
+  }
+  const mergedDetails = [...details.values()];
+  return {
+    ...first,
+    page: second.page ?? first.page,
+    note: second.note ?? first.note,
+    details: mergedDetails,
+    filled: mergedDetails.filter((detail) =>
+      ["filled", "filled-native"].includes(detail.outcome)
+    ).length,
+    skipped: mergedDetails.filter(
+      (detail) => detail.outcome === "already-populated"
+    ).length,
+    missing: mergedDetails.filter((detail) => detail.outcome === "missing").length,
+    unsupported: mergedDetails.filter(
+      (detail) => detail.outcome === "unsupported"
+    ).length
+  };
 }
 
 async function activePortalPage(pages) {
