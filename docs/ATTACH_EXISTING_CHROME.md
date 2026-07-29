@@ -26,7 +26,15 @@ to that same browser over a loopback-only Chrome DevTools connection.
 4. In that Chrome window, open the Income Tax portal and log in manually.
 5. Navigate to the existing Form 141 Schedule B draft and leave the relevant
    page or Add Details dialog visible.
-6. In another PowerShell window, run:
+6. In another PowerShell window, perform the read-only connection test:
+
+   ```powershell
+   npm run cli -- --probe
+   ```
+
+   This must print `Browser automation launch marker: absent` and `Attach probe
+   passed`. It does not fill, click, navigate, or make an application request.
+7. Only after the probe passes, run:
 
    ```powershell
    npm run cli -- --statement "C:\path\previous-statement.pdf" --amount 500000 --date 2026-07-29

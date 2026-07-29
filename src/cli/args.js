@@ -5,7 +5,8 @@ export function parseCliArgs(argv) {
     cdp: "http://127.0.0.1:9222",
     date: localDate(),
     dryRun: false,
-    help: false
+    help: false,
+    probe: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -16,6 +17,10 @@ export function parseCliArgs(argv) {
     }
     if (argument === "--dry-run") {
       options.dryRun = true;
+      continue;
+    }
+    if (argument === "--probe") {
+      options.probe = true;
       continue;
     }
     if (argument === "--statement" || argument === "--candidate" ||
@@ -33,10 +38,13 @@ export function parseCliArgs(argv) {
   }
 
   if (options.help) return options;
-  if (Boolean(options.statement) === Boolean(options.candidate)) {
+  if (!options.probe && Boolean(options.statement) === Boolean(options.candidate)) {
     throw new Error("Choose exactly one of --statement or --candidate.");
   }
-  if (options.statement && !options.amount) {
+  if (options.probe && (options.statement || options.candidate || options.dryRun)) {
+    throw new Error("--probe cannot be combined with filing input or --dry-run.");
+  }
+  if (!options.probe && options.statement && !options.amount) {
     throw new Error("--amount is required with --statement.");
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(options.date)) {

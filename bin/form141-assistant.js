@@ -33,27 +33,31 @@ try {
 }
 
 async function run(options) {
-  const filing = options.candidate
-    ? await readCandidate(options.candidate)
-    : await prepareFromStatement(options);
+  const filing = options.probe
+    ? null
+    : options.candidate
+      ? await readCandidate(options.candidate)
+      : await prepareFromStatement(options);
 
-  printReview(filing);
+  if (filing) printReview(filing);
   if (options.dryRun) {
     console.log("\nDry run complete. No browser was opened and no portal field was changed.");
     return;
   }
 
-  const confirmation = await cli.question(
-    "\nType REVIEWED after checking the parties, property, dates, rate, TDS, interest, fee, and total: "
-  );
-  if (confirmation.trim() !== "REVIEWED") {
-    throw new Error("Review was not confirmed; nothing was filled.");
+  if (filing) {
+    const confirmation = await cli.question(
+      "\nType REVIEWED after checking the parties, property, dates, rate, TDS, interest, fee, and total: "
+    );
+    if (confirmation.trim() !== "REVIEWED") {
+      throw new Error("Review was not confirmed; nothing was filled.");
+    }
+    filing.review ??= { warnings: [], decisions: [] };
+    filing.review.approved = true;
+    filing.review.approved_at = new Date().toISOString();
+    const errors = validateReviewedFiling(filing);
+    if (errors.length) throw new Error(errors.join(" "));
   }
-  filing.review ??= { warnings: [], decisions: [] };
-  filing.review.approved = true;
-  filing.review.approved_at = new Date().toISOString();
-  const errors = validateReviewedFiling(filing);
-  if (errors.length) throw new Error(errors.join(" "));
 
   console.log("\nAttaching to the ordinary Chrome session you started and logged into.");
   console.log(`DevTools endpoint: ${options.cdp}`);
@@ -71,7 +75,6 @@ async function run(options) {
   if (!context) {
     throw new Error("The attached Chrome session did not expose a browser context.");
   }
-  await installPageHelper(context);
 
   const pages = context.pages();
   const page = latestPortalPage(pages);
@@ -93,6 +96,11 @@ async function run(options) {
     }
     console.log(`Attached to accepted Chrome: ${await page.title()} (${page.url()})`);
     console.log("Browser automation launch marker: absent.");
+    if (options.probe) {
+      console.log("Attach probe passed. No page field, navigation, or network request was changed.");
+      return;
+    }
+    await installPageHelper(context);
     console.log("The CLI will never enter credentials, solve CAPTCHA/OTP, submit, or pay.");
 
     while (true) {
@@ -268,6 +276,7 @@ Options:
   --amount <rupees>    Current payment amount; required with --statement
   --date <YYYY-MM-DD>  Payment/deduction date; defaults to today
   --cdp <url>          Local Chrome DevTools URL; defaults to http://127.0.0.1:9222
+  --probe              Verify an accepted portal tab can be attached; change nothing
   --dry-run            Parse and summarize without opening a browser
   --help               Show this help
 

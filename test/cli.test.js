@@ -27,6 +27,16 @@ test("only attaches to a local Chrome debugging endpoint", () => {
   );
 });
 
+test("supports a read-only connection probe without filing input", () => {
+  const result = parseCliArgs(["--probe"]);
+  assert.equal(result.probe, true);
+  assert.equal(result.cdp, "http://127.0.0.1:9222");
+  assert.throws(
+    () => parseCliArgs(["--probe", "--candidate", "candidate.json"]),
+    /cannot be combined/
+  );
+});
+
 test("requires one input source and an amount for statements", () => {
   assert.throws(() => parseCliArgs([]), /exactly one/);
   assert.throws(
