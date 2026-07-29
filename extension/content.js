@@ -444,7 +444,11 @@
       "text",
       0,
       "main",
-      ["prevAckNum", "previousAcknowledgementNumber"]
+      [
+        "prevAckNum",
+        "previousAckNumber",
+        "previousAcknowledgementNumber"
+      ]
     );
 
     const transactionPan =
@@ -765,7 +769,11 @@
       type: control.getAttribute("type"),
       role: control.getAttribute("role"),
       keys: keys.map(redactDiagnosticText),
-      label: redactDiagnosticText(label)
+      label: redactDiagnosticText(label),
+      populated: hasValue(control),
+      readOnly: Boolean(control.readOnly),
+      ariaInvalid: control.getAttribute("aria-invalid"),
+      classes: redactDiagnosticText(control.className)
     }));
     const actions = [...context.root.querySelectorAll(
       "button, a[role='button'], input[type='button'], input[type='submit'], [role='button']"

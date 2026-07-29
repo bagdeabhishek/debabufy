@@ -218,7 +218,8 @@ function printPortalResult(result) {
         : `${detail.controlTag ?? "control"}${detail.controlType ? `:${detail.controlType}` : ""}`;
       console.log(
         `  ${detail.path} -> ${keys} [${detail.outcome}]` +
-        `${detail.controlLabel ? ` · ${detail.controlLabel}` : ""}`
+        `${detail.controlLabel ? ` · ${detail.controlLabel}` : ""}` +
+        `${detail.nativeError ? ` · ${detail.nativeError}` : ""}`
       );
     }
   }
@@ -310,7 +311,7 @@ async function fillConditionalControls(page, filing, firstResult) {
     combined = mergeFillResults(combined, next);
     if ((next.filled ?? 0) === 0) break;
   }
-  return combined;
+  return verifyNativeInputFallback(page, combined);
 }
 
 async function applyNativeInputFallback(page, filing, result) {
@@ -327,28 +328,69 @@ async function applyNativeInputFallback(page, filing, result) {
     try {
       await locator.scrollIntoViewIfNeeded();
       await locator.click();
-      await locator.fill(formatted);
+      await locator.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+      await locator.press("Backspace");
+      await locator.pressSequentially(formatted, { delay: 45 });
       await locator.press("Tab");
-      await page.waitForTimeout(150);
+      await page.waitForTimeout(350);
       let actual = await locator.inputValue();
-      if (!String(actual).trim() && detail.path.endsWith("_date")) {
+      let invalid = await locator.getAttribute("aria-invalid");
+      if (
+        (!String(actual).trim() || invalid === "true") &&
+        detail.path.endsWith("_date")
+      ) {
         await locator.click();
         await locator.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+        await locator.press("Backspace");
         await locator.pressSequentially(formatted.replace(/\D/g, ""), {
           delay: 35
         });
         await locator.press("Tab");
-        await page.waitForTimeout(150);
+        await page.waitForTimeout(350);
         actual = await locator.inputValue();
+        invalid = await locator.getAttribute("aria-invalid");
       }
-      if (!String(actual).trim()) continue;
+      if (!String(actual).trim() || invalid === "true") {
+        detail.nativeError = invalid === "true"
+          ? "Portal marked the typed value invalid."
+          : "Portal cleared the typed value.";
+        continue;
+      }
       detail.outcome = "filled-native";
+      detail.nativeObserved = "non-empty-valid";
       result.filled = (result.filled ?? 0) + 1;
       result.unsupported = Math.max(0, (result.unsupported ?? 0) - 1);
     } catch (error) {
       detail.nativeError = error.message || String(error);
     }
   }
+  return result;
+}
+
+async function verifyNativeInputFallback(page, result) {
+  for (const detail of result.details ?? []) {
+    if (detail.outcome !== "filled-native") continue;
+    const locator = await visibleControlLocator(page, detail.controlKeys ?? []);
+    const retained = locator
+      ? String(await locator.inputValue().catch(() => "")).trim()
+      : "";
+    const invalid = locator
+      ? await locator.getAttribute("aria-invalid").catch(() => null)
+      : null;
+    if (!retained || invalid === "true") {
+      detail.outcome = "unsupported";
+      detail.nativeObserved = "cleared-or-invalid-after-angular-update";
+      detail.nativeError = invalid === "true"
+        ? "Portal marked the value invalid after Angular validation."
+        : "Portal cleared the value after Angular validation.";
+    }
+  }
+  result.filled = (result.details ?? []).filter((detail) =>
+    ["filled", "filled-native"].includes(detail.outcome)
+  ).length;
+  result.unsupported = (result.details ?? []).filter(
+    (detail) => detail.outcome === "unsupported"
+  ).length;
   return result;
 }
 
