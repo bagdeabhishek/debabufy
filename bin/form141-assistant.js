@@ -77,7 +77,7 @@ async function run(options) {
   }
 
   const pages = context.pages();
-  const page = latestPortalPage(pages);
+  const page = await activePortalPage(pages);
   if (!page) {
     throw new Error(
       `No Income Tax portal tab is open in the attached Chrome session. Open ${PORTAL_URL}, ` +
@@ -104,7 +104,7 @@ async function run(options) {
     console.log("The CLI will never enter credentials, solve CAPTCHA/OTP, submit, or pay.");
 
     while (true) {
-      const activePage = latestPortalPage(context.pages()) ?? page;
+      const activePage = await activePortalPage(context.pages()) ?? page;
       const command = (await cli.question(
         "\nWhen the relevant page/dialog is visible: [Enter] fill · p preview · d diagnose · q quit: "
       )).trim().toLowerCase();
@@ -289,10 +289,20 @@ async function saveLivePageDiagnostics(page) {
   return outputPath;
 }
 
-function latestPortalPage(pages) {
-  return [...pages].reverse().find((page) =>
+async function activePortalPage(pages) {
+  const candidates = [...pages].reverse().filter((page) =>
     /^https:\/\/(?:www|eportal)\.incometax\.gov\.in\//.test(page.url())
   );
+  for (const page of candidates) {
+    try {
+      if (await page.evaluate(() => document.visibilityState === "visible")) {
+        return page;
+      }
+    } catch {
+      // Ignore a portal tab while it is navigating and try the next one.
+    }
+  }
+  return candidates[0] ?? null;
 }
 
 function money(value) {

@@ -593,13 +593,31 @@
         /total sale consideration/.test(bodyText)
       );
 
-    if (!isForm141) {
+    const isLegacy26qb =
+      /form 26qb/.test(bodyText) ||
+      /section 194.?ia/.test(bodyText) ||
+      (
+        /tax applicable/.test(bodyText) &&
+        /transfer of immovable property/.test(bodyText)
+      );
+
+    if (!isForm141 && isLegacy26qb) {
       return {
         flow: "legacy-26qb",
         page: "current legacy 26QB page",
         section: "legacy",
         root: document,
         note: null
+      };
+    }
+    if (!isForm141) {
+      return {
+        flow: "unrecognized",
+        page: "unrecognized page (not a rendered Form 141 form)",
+        section: "unknown",
+        root: document,
+        note:
+          "No filing fields were targeted. Close any View Source/HTML tab and foreground the rendered Form 141 portal tab."
       };
     }
 
