@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { localDate, parseCliArgs } from "../cli/args.js";
+import { acceptValidPopulatedControls } from "../cli.js";
 
 test("parses statement CLI arguments", () => {
   const result = parseCliArgs([
@@ -51,4 +52,46 @@ test("requires one input source and an amount for statements", () => {
 
 test("formats the local default date", () => {
   assert.equal(localDate(new Date("2026-07-28T12:00:00.000Z")), "2026-07-28");
+});
+
+test("accepts a manually populated valid month control", () => {
+  const result = acceptValidPopulatedControls(
+    {
+      details: [{
+        path: "portal.month_of_deduction",
+        outcome: "missing"
+      }]
+    },
+    {
+      visibleControls: [{
+        keys: ["monthOfDeduction", "mat-input-4"],
+        populated: true,
+        ariaInvalid: "false"
+      }]
+    }
+  );
+  assert.equal(result.details[0].outcome, "already-populated");
+  assert.equal(result.details[0].acceptedFromLiveDiagnostics, true);
+  assert.equal(result.missing, 0);
+  assert.equal(result.skipped, 1);
+});
+
+test("does not accept an invalid manually populated control", () => {
+  const result = acceptValidPopulatedControls(
+    {
+      details: [{
+        path: "portal.month_of_deduction",
+        outcome: "unsupported"
+      }]
+    },
+    {
+      visibleControls: [{
+        keys: ["monthOfDeduction"],
+        populated: true,
+        ariaInvalid: "true"
+      }]
+    }
+  );
+  assert.equal(result.details[0].outcome, "unsupported");
+  assert.equal(result.unsupported, 1);
 });

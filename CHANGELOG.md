@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.6 - 2026-09-26
+
+- Accept a manually selected, populated, valid month of deduction when the
+  portal exposes it as a read-only date-picker input instead of a selectable
+  control, allowing the Form 141 particulars Continue step to proceed.
+
 ## 0.2.5 - 2026-09-26
 
 - Save live diagnostics for failures during the particulars and intermediate

@@ -363,6 +363,10 @@ async function advanceToTransactionPage(page, filing, onProgress = () => {}) {
       overwrite: false
     });
     result = await fillConditionalControls(page, filing, result);
+    result = acceptValidPopulatedControls(
+      result,
+      await portalDiagnostics(page)
+    );
     printPortalResult(result);
 
     const unresolved = (result.details ?? []).filter((detail) =>
@@ -412,6 +416,41 @@ async function advanceToTransactionPage(page, filing, onProgress = () => {}) {
     }
   }
   return portalDiagnostics(page);
+}
+
+export function acceptValidPopulatedControls(result, diagnostics) {
+  const fallbackKeys = {
+    "portal.month_of_deduction": ["monthOfDeduction"]
+  };
+  const controls = diagnostics?.visibleControls ?? [];
+  for (const detail of result.details ?? []) {
+    if (!["missing", "unsupported"].includes(detail.outcome)) continue;
+    const expectedKeys = detail.controlKeys?.length
+      ? detail.controlKeys
+      : fallbackKeys[detail.path] ?? [];
+    if (!expectedKeys.length) continue;
+    const accepted = controls.some((control) =>
+      control.populated === true &&
+      control.ariaInvalid !== "true" &&
+      (control.keys ?? []).some((key) => expectedKeys.includes(key))
+    );
+    if (!accepted) continue;
+    detail.outcome = "already-populated";
+    detail.acceptedFromLiveDiagnostics = true;
+  }
+  result.filled = (result.details ?? []).filter((detail) =>
+    ["filled", "filled-native", "filled-calendar"].includes(detail.outcome)
+  ).length;
+  result.skipped = (result.details ?? []).filter(
+    (detail) => detail.outcome === "already-populated"
+  ).length;
+  result.missing = (result.details ?? []).filter(
+    (detail) => detail.outcome === "missing"
+  ).length;
+  result.unsupported = (result.details ?? []).filter(
+    (detail) => detail.outcome === "unsupported"
+  ).length;
+  return result;
 }
 
 function captureContinueAttempt(page, section) {
