@@ -61,6 +61,10 @@ Download the Windows installer from
 The builds are currently unsigned, so Windows may display a SmartScreen
 warning. Verify the release and checksum before running it.
 
+Starting with version 0.2.3, the Windows app checks the project's public
+GitHub releases at startup and shows a download button when a newer installer
+is available. Updates remain user-controlled and are never installed silently.
+
 ## Run from source
 
 Requirements:

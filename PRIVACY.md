@@ -15,6 +15,11 @@ contact details, property details, tax figures, and the rendered portal page.
   directory so the user can log in normally.
 - Failure diagnostics are stored locally in the application's `diagnostics`
   directory.
+- On Windows, DeBabufy makes a short request to GitHub's public releases API
+  at startup to check whether a newer installer exists. The request contains
+  the installed application version and normal network metadata, but no
+  statement, portal, taxpayer, property, or filing data. A failed or offline
+  update check is ignored.
 
 The government portal itself receives data when the user runs a workflow in
 their authenticated Chrome session, just as it would during manual entry.

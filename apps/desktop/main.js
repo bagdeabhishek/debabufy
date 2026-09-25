@@ -14,11 +14,16 @@ import {
   chromeDefaults,
   launchOrdinaryChrome
 } from "./chrome.js";
+import {
+  fetchAvailableUpdate,
+  isTrustedInstallerUrl
+} from "./updates.js";
 
 const appDirectory = path.dirname(fileURLToPath(import.meta.url));
 const proposals = new Map();
 let mainWindow;
 let workflowRunning = false;
+let availableUpdate = null;
 
 function trustedSender(event) {
   const senderUrl = event.senderFrame?.url;
@@ -63,6 +68,27 @@ function registerIpc() {
   ipcMain.handle("app:list-workflows", (event) => {
     assertTrusted(event);
     return listWorkflows();
+  });
+
+  ipcMain.handle("app:check-update", async (event) => {
+    assertTrusted(event);
+    try {
+      availableUpdate = await fetchAvailableUpdate({
+        currentVersion: app.getVersion()
+      });
+      return availableUpdate;
+    } catch {
+      availableUpdate = null;
+      return null;
+    }
+  });
+
+  ipcMain.handle("app:open-update", async (event) => {
+    assertTrusted(event);
+    if (!availableUpdate || !isTrustedInstallerUrl(availableUpdate.downloadUrl)) {
+      throw new Error("No trusted update is currently available.");
+    }
+    await shell.openExternal(availableUpdate.downloadUrl);
   });
 
   ipcMain.handle("file:choose-statement", async (event) => {

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.3 - 2026-09-25
+
+- Added a non-blocking update check against DeBabufy's public GitHub releases.
+- Show an in-app download banner when a newer trusted Windows x64 installer is
+  available; installation remains explicitly user-controlled.
+
 ## 0.2.2 - 2026-09-25
 
 - Select the nearest enabled transaction payment or deduction date when the

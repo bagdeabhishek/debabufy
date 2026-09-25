@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("debabufy", {
   listWorkflows: () => ipcRenderer.invoke("app:list-workflows"),
+  checkForUpdate: () => ipcRenderer.invoke("app:check-update"),
+  openUpdate: () => ipcRenderer.invoke("app:open-update"),
   chooseStatement: () => ipcRenderer.invoke("file:choose-statement"),
   chooseCertificate: () => ipcRenderer.invoke("file:choose-certificate"),
   inspectWorkflow: (request) => ipcRenderer.invoke("workflow:inspect", request),

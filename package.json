@@ -1,6 +1,6 @@
 {
   "name": "debabufy",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "Local-first desktop automation for repetitive Indian administrative workflows",
   "type": "module",

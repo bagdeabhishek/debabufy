@@ -20,6 +20,9 @@ const runButton = document.querySelector("#run");
 const activityCard = document.querySelector("#activity-card");
 const activity = document.querySelector("#activity");
 const diagnosticsButton = document.querySelector("#open-diagnostics");
+const updateBanner = document.querySelector("#update-banner");
+const updateMessage = document.querySelector("#update-message");
+const downloadUpdateButton = document.querySelector("#download-update");
 
 let workflows = [];
 let selectedFile = null;
@@ -182,6 +185,15 @@ async function loadWorkflows() {
     workflowSelect.append(option);
   }
   updateWorkflowDescription();
+}
+
+async function checkForUpdate() {
+  const update = await window.debabufy.checkForUpdate();
+  if (!update) return;
+  updateMessage.textContent =
+    `Version ${update.latestVersion} is ready; you have ${update.currentVersion}. ` +
+    "Installing it will keep your local DeBabufy data.";
+  updateBanner.classList.remove("hidden");
 }
 
 function updateWorkflowDescription() {
@@ -359,6 +371,17 @@ diagnosticsButton.addEventListener("click", () => {
   window.debabufy.openDiagnostics();
 });
 
+downloadUpdateButton.addEventListener("click", async () => {
+  downloadUpdateButton.disabled = true;
+  try {
+    await window.debabufy.openUpdate();
+    downloadUpdateButton.textContent = "Download opened";
+  } catch (error) {
+    downloadUpdateButton.disabled = false;
+    showActivity(errorMessage(error), "error");
+  }
+});
+
 window.debabufy.onProgress(({ message }) => {
   showActivity(message);
 });
@@ -367,4 +390,8 @@ paymentDateInput.value = localDate();
 
 loadWorkflows().catch((error) => {
   showActivity(`Could not load workflows: ${errorMessage(error)}`, "error");
+});
+
+checkForUpdate().catch(() => {
+  // Update checks are optional and must never interrupt a filing workflow.
 });

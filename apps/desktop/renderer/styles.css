@@ -107,6 +107,29 @@ h1 {
   box-shadow: 0 8px 28px rgba(71, 58, 40, 0.06);
 }
 
+.update-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 15px 18px;
+  border: 1px solid #d9b485;
+  border-radius: 14px;
+  background: #fff4df;
+  box-shadow: 0 8px 28px rgba(71, 58, 40, 0.05);
+}
+
+.update-banner p {
+  margin: 4px 0 0;
+  color: #6d573e;
+  font-size: 0.8rem;
+}
+
+.update-banner .secondary {
+  flex: 0 0 auto;
+}
+
 .section-heading {
   display: flex;
   gap: 13px;
@@ -404,5 +427,10 @@ footer {
   .input-grid,
   .proposal-grid {
     grid-template-columns: 1fr;
+  }
+
+  .update-banner {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
