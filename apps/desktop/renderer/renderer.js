@@ -56,7 +56,7 @@ function updateRunButton() {
 function showActivity(message, tone = "") {
   activityCard.classList.remove("hidden");
   activity.textContent = message;
-  activity.classList.remove("error", "success");
+  activity.classList.remove("error", "success", "warning");
   if (tone) activity.classList.add(tone);
 }
 
@@ -327,11 +327,26 @@ runButton.addEventListener("click", async () => {
       token: proposalToken,
       reviewed: reviewedInput.checked
     });
-    showActivity(
-      `Done: ${summary.added} added, ${summary.updated} updated, ` +
-      `${summary.existing} already present. Review the portal before continuing.`,
-      "success"
-    );
+    const dateAdjustments = summary.dateAdjustments ?? [];
+    if (dateAdjustments.length) {
+      const substitutions = dateAdjustments.map((adjustment) => {
+        const label = adjustment.field?.includes("deduction")
+          ? "deduction date"
+          : "payment date";
+        return `${label} ${adjustment.requested} → ${adjustment.selected}`;
+      }).join("; ");
+      showActivity(
+        `Done with portal date substitution: ${substitutions}. ` +
+        "Review that date before continuing.",
+        "warning"
+      );
+    } else {
+      showActivity(
+        `Done: ${summary.added} added, ${summary.updated} updated, ` +
+        `${summary.existing} already present. Review the portal before continuing.`,
+        "success"
+      );
+    }
   } catch (error) {
     showActivity(errorMessage(error), "error");
     diagnosticsButton.classList.remove("hidden");

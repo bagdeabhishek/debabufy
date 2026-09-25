@@ -21,6 +21,12 @@ Every resolved value is shown in the proposal review.
 Portal-bound monetary values are rounded upward to whole rupees before review
 and validation. Decimal values are never passed to the portal controls.
 
+Transaction payment and deduction dates use the exact reviewed date whenever
+the portal permits it. If that date is disabled, the automation selects the
+nearest enabled date in the same month, prefers the earlier date on a tie, and
+reports the change. It never substitutes a property agreement date or silently
+crosses into another month.
+
 ## Public module interface
 
 ```js

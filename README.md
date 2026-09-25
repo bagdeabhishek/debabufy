@@ -33,6 +33,11 @@ All monetary values sent to the portal are rounded upward to whole rupees. This
 prevents the portal's integer-only controls from removing decimal points and
 turning paise into extra digits.
 
+For transaction payment and deduction dates, DeBabufy first selects the exact
+reviewed date. If the portal disables that date, it selects the nearest enabled
+date in the same month, preferring the earlier date on a tie, and surfaces the
+substitution for review. Property agreement dates are never approximated.
+
 The current desktop flow:
 
 1. reads the previous PDF, JSON, or text statement locally;

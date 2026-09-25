@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.2.2 - 2026-09-25
+
+- Select the nearest enabled transaction payment or deduction date when the
+  exact reviewed date is unavailable, restricted to the same month and with
+  the earlier date preferred on a tie.
+- Surface every date substitution prominently for review, while keeping
+  property agreement dates exact.
+
 ## 0.2.1 - 2026-09-25
 
 - Round every portal-bound monetary value upward to a whole rupee so the

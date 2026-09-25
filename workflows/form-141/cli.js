@@ -15,6 +15,10 @@ import {
 } from "./src/infer.js";
 import { extractPdfText } from "./src/pdf.js";
 import { parseForm132CertificateText } from "./src/certificate.js";
+import {
+  nearestDateInSameMonth,
+  parseCalendarDateLabel
+} from "./src/calendar.js";
 import { selectFilingBuyer } from "./src/filer.js";
 import {
   detailSectionIndex,
@@ -298,10 +302,13 @@ export async function runForm141Automation({
       onProgress
     });
     onProgress({
-      stage: "complete",
+      stage: summary.dateAdjustments?.length ? "review-date" : "complete",
       message:
         `Finished: ${summary.added} row(s) added, ${summary.updated} updated, ` +
-        `${summary.existing} already present. Review the portal before continuing.`
+        `${summary.existing} already present. ` +
+        (summary.dateAdjustments?.length
+          ? "The requested transaction date was unavailable; review the nearest enabled date selected by the portal before continuing."
+          : "Review the portal before continuing.")
     });
     return summary;
   } finally {
@@ -408,6 +415,7 @@ function printPortalResult(result) {
       console.log(
         `  ${detail.path} -> ${keys} [${detail.outcome}]` +
         `${detail.controlLabel ? ` · ${detail.controlLabel}` : ""}` +
+        `${detail.nativeWarning ? ` · WARNING: ${detail.nativeWarning}` : ""}` +
         `${detail.nativeError ? ` · ${detail.nativeError}` : ""}`
       );
     }
@@ -498,6 +506,7 @@ async function automateDetailRows(
   let added = 0;
   let existing = 0;
   let updated = 0;
+  const dateAdjustments = [];
   try {
     const initial = await portalDiagnostics(page);
     if (initial.page !== "Form 141 Schedule B transaction page") {
@@ -545,7 +554,10 @@ async function automateDetailRows(
     }
 
     for (const index of missingBuyerIndexes) {
-      await addDetailRow(page, filing, "buyer", index);
+      collectDateAdjustments(
+        dateAdjustments,
+        await addDetailRow(page, filing, "buyer", index)
+      );
       added += 1;
       onProgress({
         stage: "buyers",
@@ -561,7 +573,10 @@ async function automateDetailRows(
         console.log(`Seller row ${index + 1} is already present; skipping it.`);
         continue;
       }
-      await addDetailRow(page, filing, "seller", index);
+      collectDateAdjustments(
+        dateAdjustments,
+        await addDetailRow(page, filing, "seller", index)
+      );
       added += 1;
       onProgress({
         stage: "sellers",
@@ -574,7 +589,10 @@ async function automateDetailRows(
       existing += 1;
       console.log("Transaction row is already present; skipping it.");
     } else {
-      await addDetailRow(page, filing, "transaction");
+      collectDateAdjustments(
+        dateAdjustments,
+        await addDetailRow(page, filing, "transaction")
+      );
       added += 1;
       onProgress({
         stage: "transaction",
@@ -583,7 +601,7 @@ async function automateDetailRows(
       console.log("Transaction row added and accepted.");
     }
 
-    return { added, existing, updated };
+    return { added, existing, updated, dateAdjustments };
   } catch (error) {
     let diagnosticNote = "";
     try {
@@ -742,6 +760,20 @@ async function addDetailRow(page, filing, section, partyIndex = null) {
     `${sectionLabel}: the portal did not close the editor after Add.`,
     12_000
   );
+  return result;
+}
+
+function collectDateAdjustments(target, result) {
+  for (const detail of result?.details ?? []) {
+    if (!detail.dateAdjustment) continue;
+    if (!target.some((existing) =>
+      existing.field === detail.dateAdjustment.field &&
+      existing.requested === detail.dateAdjustment.requested &&
+      existing.selected === detail.dateAdjustment.selected
+    )) {
+      target.push(detail.dateAdjustment);
+    }
+  }
 }
 
 async function portalDiagnostics(page) {
@@ -1056,7 +1088,12 @@ async function repairMaterialDateInputs(page, filing, result) {
     if (retained && !invalid && detail.outcome !== "unsupported") continue;
 
     try {
-      const selected = await selectMaterialDate(page, locator, String(value));
+      const selected = await selectMaterialDate(
+        page,
+        locator,
+        String(value),
+        detail.path.startsWith("transaction.")
+      );
       if (!selected) {
         detail.nativeError =
           "Could not select the requested date in the portal calendar.";
@@ -1069,7 +1106,22 @@ async function repairMaterialDateInputs(page, filing, result) {
         continue;
       }
       detail.outcome = "filled-calendar";
-      detail.nativeObserved = "calendar-selected-valid";
+      detail.nativeObserved = selected.exact
+        ? "calendar-selected-valid"
+        : "calendar-selected-nearest-valid";
+      if (!selected.exact) {
+        detail.dateAdjustment = {
+          field: detail.path,
+          requested: String(value),
+          selected: selected.selectedDate
+        };
+        detail.nativeWarning =
+          `Requested date ${value} was unavailable; selected nearest enabled ` +
+          `date ${selected.selectedDate} in the same month.`;
+        if (detail.path.startsWith("transaction.")) {
+          setFilingValue(filing, detail.path, selected.selectedDate);
+        }
+      }
       delete detail.nativeError;
     } catch (error) {
       detail.nativeError = error.message || String(error);
@@ -1078,7 +1130,7 @@ async function repairMaterialDateInputs(page, filing, result) {
   return result;
 }
 
-async function selectMaterialDate(page, input, isoDate) {
+async function selectMaterialDate(page, input, isoDate, allowNearest = false) {
   const [year, month, day] = isoDate.split("-").map(Number);
   const field = input.locator("xpath=ancestor::mat-form-field[1]");
   const toggle = field.getByRole("button", { name: /open calendar/i }).first();
@@ -1099,7 +1151,7 @@ async function selectMaterialDate(page, input, isoDate) {
     );
     if (matchingCell) {
       await matchingCell.click();
-      return true;
+      return { exact: true, selectedDate: isoDate };
     }
 
     const periodText = String(
@@ -1111,17 +1163,52 @@ async function selectMaterialDate(page, input, isoDate) {
     if (!current) break;
     const targetIndex = year * 12 + month - 1;
     const currentIndex = current.year * 12 + current.month - 1;
+    if (targetIndex === currentIndex) {
+      if (allowNearest) {
+        const nearestDate = await nearestEnabledMaterialDate(calendar, isoDate);
+        if (nearestDate) {
+          const [nearestYear, nearestMonth, nearestDay] = nearestDate
+            .split("-")
+            .map(Number);
+          const nearestCell = await matchingMaterialDateCell(
+            calendar,
+            nearestYear,
+            nearestMonth,
+            nearestDay
+          );
+          if (nearestCell) {
+            await nearestCell.click();
+            return { exact: false, selectedDate: nearestDate };
+          }
+        }
+      }
+      break;
+    }
     const direction = targetIndex < currentIndex ? "previous" : "next";
     const navigation = calendar.locator(
       `.mat-calendar-${direction}-button`
     ).first();
     if (!(await navigation.isVisible().catch(() => false))) break;
+    if (await navigation.isDisabled().catch(() => false)) break;
     await navigation.click();
     await page.waitForTimeout(75);
   }
 
   await page.keyboard.press("Escape").catch(() => {});
   return false;
+}
+
+async function nearestEnabledMaterialDate(calendar, targetIso) {
+  const cells = calendar.locator(
+    ".mat-calendar-body-cell:not(.mat-calendar-body-disabled)"
+  );
+  const availableDates = [];
+  for (let index = 0; index < await cells.count(); index += 1) {
+    const label = await cells.nth(index).getAttribute("aria-label").catch(() => null);
+    const parsed = parseCalendarDateLabel(label);
+    if (parsed) availableDates.push(parsed);
+  }
+  return nearestDateInSameMonth(targetIso, availableDates);
 }
 
 async function matchingMaterialDateCell(calendar, year, month, day) {
@@ -1249,6 +1336,19 @@ function filingValue(filing, fieldPath) {
     .split(".")
     .filter(Boolean)
     .reduce((value, key) => value?.[key], filing);
+}
+
+function setFilingValue(filing, fieldPath, newValue) {
+  const parts = fieldPath
+    .replace(/\[(\d+)\]/g, ".$1")
+    .split(".")
+    .filter(Boolean);
+  let current = filing;
+  for (const part of parts.slice(0, -1)) {
+    current[part] ??= {};
+    current = current[part];
+  }
+  current[parts.at(-1)] = newValue;
 }
 
 function mergeFillResults(first, second) {

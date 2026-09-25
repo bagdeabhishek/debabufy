@@ -384,6 +384,10 @@ button:focus-visible {
   color: #27613a !important;
 }
 
+.warning {
+  color: #8a4b12 !important;
+}
+
 footer {
   padding: 12px 8px;
   color: #77736c;
