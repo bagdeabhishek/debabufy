@@ -13,3 +13,5 @@
 - Added local Form 132 verification so a co-buyer's previous acknowledgement
   can be used safely with the shared property details from another buyer's
   Form 141 statement.
+- Updated PDF.js to a patched release after the production dependency audit
+  identified a malicious-PDF code-execution advisory.
