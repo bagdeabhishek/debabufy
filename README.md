@@ -15,10 +15,15 @@ submission, and payment.
 
 ### Income Tax Form 141 — Schedule B
 
-The first workflow prepares a subsequent property-TDS instalment using only:
+The first workflow prepares a subsequent property-TDS instalment using:
 
 1. the previous Form 141 challan statement; and
-2. the amount paid in the current instalment.
+2. the amount and date of the current instalment.
+
+For a jointly purchased property, choose the buyer whose Income Tax account is
+currently logged in. If that buyer did not file the selected Form 141 statement,
+DeBabufy asks for their previous Form 132 certificate and verifies the buyer PAN
+before carrying forward that buyer's acknowledgement number.
 
 The parser carries forward the parties and property, calculates a deterministic
 proposal from the previous statement, and shows every important figure for
@@ -27,13 +32,15 @@ review. No LLM, cloud API, or probabilistic agent is involved.
 The current desktop flow:
 
 1. reads the previous PDF, JSON, or text statement locally;
-2. infers the next proposal using deterministic rules;
-3. launches a dedicated ordinary Chrome profile;
-4. waits for you to log in and open Form 141 Schedule B;
-5. fills the main fields;
-6. edits the portal-created buyer and assigns the correct ownership share;
-7. adds remaining buyers, sellers, and the transaction sequentially; and
-8. stops for your review before portal continuation, submission, or payment.
+2. lets you select the filing buyer and verifies buyer-specific Form 132 evidence
+   when necessary;
+3. infers the next proposal using deterministic rules;
+4. launches a dedicated ordinary Chrome profile;
+5. waits for you to log in and open Form 141 Schedule B;
+6. fills the main fields;
+7. edits the portal-created buyer and assigns the correct ownership share;
+8. adds remaining buyers, sellers, and the transaction sequentially; and
+9. stops for your review before portal continuation, submission, or payment.
 
 Navigation from the portal home page to Form 141 and onward to the payment
 review screen is planned, but is not claimed as complete yet.

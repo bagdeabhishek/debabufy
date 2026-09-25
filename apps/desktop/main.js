@@ -84,6 +84,38 @@ function registerIpc() {
     };
   });
 
+  ipcMain.handle("file:choose-certificate", async (event) => {
+    assertTrusted(event);
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose the selected buyer's previous Form 132 certificate",
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Form 132 certificates",
+          extensions: ["pdf", "txt"]
+        }
+      ]
+    });
+    if (result.canceled) return null;
+    return {
+      path: result.filePaths[0],
+      name: path.basename(result.filePaths[0])
+    };
+  });
+
+  ipcMain.handle("workflow:inspect", async (event, request) => {
+    assertTrusted(event);
+    const workflow = getWorkflow(String(request?.workflowId ?? ""));
+    const previousChallan = String(request?.previousChallan ?? "");
+    if (!path.isAbsolute(previousChallan)) {
+      throw new Error("Choose a previous challan statement.");
+    }
+    if (typeof workflow.inspect !== "function") {
+      throw new Error("This workflow cannot inspect its input file.");
+    }
+    return workflow.inspect({ previousChallan });
+  });
+
   ipcMain.handle("chrome:launch", async (event) => {
     assertTrusted(event);
     const chromeProfile = path.join(app.getPath("userData"), "chrome-profile");
@@ -99,16 +131,33 @@ function registerIpc() {
     const workflow = getWorkflow(String(request?.workflowId ?? ""));
     const previousChallan = String(request?.previousChallan ?? "");
     const currentAmount = Number(request?.currentAmount);
+    const paymentDate = String(request?.paymentDate ?? "");
+    const filingBuyerPan = String(request?.filingBuyerPan ?? "");
+    const supportingCertificate = request?.supportingCertificate
+      ? String(request.supportingCertificate)
+      : null;
     if (!path.isAbsolute(previousChallan)) {
       throw new Error("Choose a previous challan statement.");
     }
     if (!Number.isFinite(currentAmount) || currentAmount <= 0) {
       throw new Error("Enter a positive current payment amount.");
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) {
+      throw new Error("Choose the payment and deduction date.");
+    }
+    if (!filingBuyerPan) {
+      throw new Error("Choose the buyer filing this Form 141.");
+    }
+    if (supportingCertificate && !path.isAbsolute(supportingCertificate)) {
+      throw new Error("Choose a valid Form 132 certificate.");
+    }
 
     const proposal = await workflow.prepare({
       previousChallan,
-      currentAmount
+      currentAmount,
+      paymentDate,
+      filingBuyerPan,
+      supportingCertificate
     });
     const token = randomUUID();
     proposals.clear();

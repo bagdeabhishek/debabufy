@@ -189,6 +189,20 @@ button:focus-visible {
   gap: 14px;
 }
 
+.secondary-inputs {
+  margin-top: 14px;
+}
+
+.certificate-field {
+  margin-top: 14px;
+}
+
+.certificate-field .field-help {
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
 .file-button {
   display: flex;
   justify-content: space-between;

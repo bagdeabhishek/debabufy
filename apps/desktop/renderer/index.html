@@ -62,8 +62,34 @@
           </label>
         </div>
 
+        <div class="input-grid secondary-inputs">
+          <label class="field">
+            <span>Payment and deduction date</span>
+            <input id="payment-date" type="date">
+          </label>
+
+          <label class="field">
+            <span>Buyer filing this Form 141</span>
+            <select id="filing-buyer" disabled>
+              <option value="">Choose the statement first</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="certificate-field" class="field certificate-field hidden">
+          <span>Selected buyer's previous Form 132 certificate</span>
+          <button id="choose-certificate" class="file-button" type="button">
+            <span id="certificate-name">Choose Form 132 PDF</span>
+            <span aria-hidden="true">Browse</span>
+          </button>
+          <p class="field-help">
+            Needed when the selected buyer differs from the buyer who filed the chosen Form 141.
+            DeBabufy reads the buyer-specific previous acknowledgement from this certificate.
+          </p>
+        </div>
+
         <p class="automatic-note">
-          Payment and deduction date will be proposed as today and shown before anything is filled.
+          The selected date and buyer-specific acknowledgement will be shown before anything is filled.
         </p>
         <button id="prepare" class="primary" type="button">Review proposal</button>
       </section>

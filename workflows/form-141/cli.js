@@ -14,6 +14,8 @@ import {
   validateReviewedFiling
 } from "./src/infer.js";
 import { extractPdfText } from "./src/pdf.js";
+import { parseForm132CertificateText } from "./src/certificate.js";
+import { selectFilingBuyer } from "./src/filer.js";
 import {
   detailSectionIndex,
   expectedBuyerShare,
@@ -162,36 +164,75 @@ async function run(options) {
 }
 
 async function prepareFromStatement(options) {
-  const bytes = await fs.readFile(options.statement);
-  const lower = options.statement.toLowerCase();
-  let previous;
-  if (lower.endsWith(".pdf")) {
-    previous = parseStatementText(await extractPdfText(pdfjs, bytes));
-  } else if (lower.endsWith(".json")) {
-    previous = normalizeStatementJson(JSON.parse(bytes.toString("utf8")));
-  } else {
-    previous = parseStatementText(bytes.toString("utf8"));
-  }
-  return inferNextFiling(previous, {
+  const previous = await readStatement(options.statement);
+  const filing = inferNextFiling(previous, {
     amount: options.amount,
     paymentDate: options.date
+  });
+  let certificate = null;
+  if (options.supportingCertificate) {
+    const bytes = await fs.readFile(options.supportingCertificate);
+    const text = options.supportingCertificate.toLowerCase().endsWith(".pdf")
+      ? await extractPdfText(pdfjs, bytes)
+      : bytes.toString("utf8");
+    certificate = parseForm132CertificateText(text);
+  }
+  return selectFilingBuyer(filing, previous, {
+    filingBuyerPan: options.filingBuyerPan,
+    certificate
   });
 }
 
 export async function prepareForm141Proposal({
   statementPath,
   amount,
-  paymentDate = localDate()
+  paymentDate = localDate(),
+  filingBuyerPan = null,
+  supportingCertificatePath = null
 }) {
   const filing = await prepareFromStatement({
     statement: path.resolve(statementPath),
     amount,
-    date: paymentDate
+    date: paymentDate,
+    filingBuyerPan,
+    supportingCertificate: supportingCertificatePath
+      ? path.resolve(supportingCertificatePath)
+      : null
   });
   return {
     filing,
     summary: proposalSummary(filing)
   };
+}
+
+export async function inspectForm141Statement(statementPath) {
+  const previous = await readStatement(path.resolve(statementPath));
+  const buyers = (previous.buyers ?? []).map((buyer) => ({
+    pan: buyer.pan,
+    name: buyer.name ?? "Buyer",
+    sharePercentage: buyer.share_percentage ?? null
+  }));
+  if (!buyers.length) {
+    throw new Error("No buyers were found in the previous Form 141 statement.");
+  }
+  return {
+    buyers,
+    statementBuyerPan: previous.meta?.taxpayer?.pan ?? buyers[0].pan,
+    acknowledgementNumber: previous.meta?.acknowledgement_number ?? null,
+    taxYear: previous.meta?.tax_year ?? null
+  };
+}
+
+async function readStatement(statementPath) {
+  const bytes = await fs.readFile(statementPath);
+  const lower = statementPath.toLowerCase();
+  if (lower.endsWith(".pdf")) {
+    return parseStatementText(await extractPdfText(pdfjs, bytes));
+  }
+  if (lower.endsWith(".json")) {
+    return normalizeStatementJson(JSON.parse(bytes.toString("utf8")));
+  }
+  return parseStatementText(bytes.toString("utf8"));
 }
 
 export async function runForm141Automation({
@@ -272,6 +313,9 @@ function proposalSummary(filing) {
   return {
     form: "Form 141 Schedule B",
     taxYear: filing.meta?.tax_year ?? null,
+    filingBuyer: filing.meta?.filing_buyer_name ?? null,
+    previousAcknowledgement:
+      filing.meta?.previous_acknowledgement_number ?? null,
     buyers: filing.buyers?.length ?? 0,
     sellers: filing.sellers?.length ?? 0,
     previousInstallments:

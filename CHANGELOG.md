@@ -8,3 +8,8 @@
   payment amount.
 - Added ordinary-Chrome launch and Playwright CDP attachment.
 - Added a contributor-facing workflow module structure.
+- Added an explicit payment and deduction date to the desktop review flow.
+- Added filing-buyer selection for jointly purchased property.
+- Added local Form 132 verification so a co-buyer's previous acknowledgement
+  can be used safely with the shared property details from another buyer's
+  Form 141 statement.

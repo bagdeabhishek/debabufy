@@ -7,17 +7,25 @@ Form 141 Schedule B property-TDS instalment from a previous challan statement.
 
 - `previousChallan`: previous statement as PDF, JSON, or extracted text
 - `currentAmount`: positive rupee amount for the current instalment
+- `paymentDate`: payment and deduction date in `YYYY-MM-DD` format
+- `filingBuyerPan`: buyer from the previous statement whose portal account is
+  being used
+- `supportingCertificate`: the selected buyer's previous Form 132 PDF or text,
+  required only when that buyer did not file `previousChallan`
 
-The payment and deduction date default to the user's current local date and are
-shown in the proposal review.
+The desktop app asks for the payment date explicitly. It lists the buyers parsed
+from the Form 141 statement and verifies that a cross-buyer Form 132 certificate
+has the selected buyer's PAN, tax year, and previous acknowledgement number.
+Every resolved value is shown in the proposal review.
 
 ## Public module interface
 
 ```js
-import { manifest, prepare, run } from "./workflows/form-141/index.js";
+import { inspect, manifest, prepare, run } from "./workflows/form-141/index.js";
 ```
 
-- `manifest` describes the workflow and its two inputs.
+- `manifest` describes the workflow inputs.
+- `inspect(input)` reads the statement and returns the available filing buyers.
 - `prepare(input)` parses and returns `{ filing, summary }` without changing the
   browser or portal.
 - `run(context)` attaches to loopback Chrome, validates the current page, fills

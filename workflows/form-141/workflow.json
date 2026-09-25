@@ -26,6 +26,28 @@
       "label": "Current amount paid",
       "currency": "INR",
       "required": true
+    },
+    {
+      "id": "paymentDate",
+      "type": "date",
+      "label": "Payment and deduction date",
+      "required": true
+    },
+    {
+      "id": "filingBuyerPan",
+      "type": "buyer",
+      "label": "Buyer filing this Form 141",
+      "required": true
+    },
+    {
+      "id": "supportingCertificate",
+      "type": "file",
+      "label": "Selected buyer's previous Form 132 certificate",
+      "accept": [
+        ".pdf",
+        ".txt"
+      ],
+      "required": false
     }
   ],
   "safety": {
