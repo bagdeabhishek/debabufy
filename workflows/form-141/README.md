@@ -40,6 +40,10 @@ import { inspect, manifest, prepare, run } from "./workflows/form-141/index.js";
 - `run(context)` attaches to loopback Chrome, validates the current page, fills
   the form and detail rows, reports progress, and returns a row summary.
 
+The run can start on either the Form 141 particulars screen or the main
+Schedule B transaction screen. From particulars, it fills the reviewed values
+and uses the intermediate Continue controls before adding detail rows.
+
 ## Safety boundary
 
 The workflow does not enter credentials, solve OTP/CAPTCHA, click final

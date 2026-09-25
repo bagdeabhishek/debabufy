@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.2.4 - 2026-09-25
+
+- Recognize the Form 141 particulars screen from its rendered controls even
+  when the portal omits its headings from accessible page text.
+- Fill and continue through the particulars and deductee-type steps before
+  running the buyer, seller, and transaction-row automation.
+- Verify that every portal date exactly matches the reviewed date (or an
+  explicitly reported transaction-date substitution) and stop on silent date
+  reformatting instead of accepting it.
+- Publish unsigned macOS DMGs for Intel and Apple Silicon and a Linux x64
+  AppImage alongside the Windows installer.
+- Offer the correct update download for each supported desktop package.
+
 ## 0.2.3 - 2026-09-25
 
 - Added a non-blocking update check against DeBabufy's public GitHub releases.

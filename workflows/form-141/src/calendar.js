@@ -44,6 +44,16 @@ export function parseCalendarDateLabel(value) {
   return null;
 }
 
+export function parsePortalInputDate(value) {
+  const input = String(value ?? "").trim();
+  const parsedLabel = parseCalendarDateLabel(input);
+  if (parsedLabel) return parsedLabel;
+  const dayFirst = input.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/);
+  return dayFirst
+    ? isoDate(Number(dayFirst[3]), Number(dayFirst[2]), Number(dayFirst[1]))
+    : null;
+}
+
 export function nearestDateInSameMonth(targetIso, candidateDates) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(targetIso))) return null;
   const targetTime = Date.parse(`${targetIso}T00:00:00Z`);

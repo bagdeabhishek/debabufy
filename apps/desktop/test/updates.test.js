@@ -7,15 +7,19 @@ import {
 } from "../updates.js";
 
 function release(version, options = {}) {
+  const os = options.os ?? "win";
+  const arch = options.arch ?? "x64";
+  const extension = options.extension ?? "exe";
+  const fileName = `DeBabufy-${version}-${os}-${arch}.${extension}`;
   return {
     draft: Boolean(options.draft),
     prerelease: options.prerelease ?? true,
     html_url: `https://github.com/bagdeabhishek/debabufy/releases/tag/main-${version}`,
     assets: [{
-      name: `DeBabufy-${version}-win-x64.exe`,
+      name: fileName,
       browser_download_url:
         `https://github.com/bagdeabhishek/debabufy/releases/download/` +
-        `main-${version}/DeBabufy-${version}-win-x64.exe`
+        `main-${version}/${fileName}`
     }]
   };
 }
@@ -58,4 +62,31 @@ test("ignores drafts, current versions, foreign URLs, and unsupported systems", 
     null
   );
   assert.equal(isTrustedInstallerUrl(foreign.assets[0].browser_download_url), false);
+});
+
+test("selects matching macOS and Linux packages", () => {
+  const macArm = release("0.3.0", {
+    os: "mac",
+    arch: "arm64",
+    extension: "dmg"
+  });
+  const linux = release("0.3.0", {
+    os: "linux",
+    arch: "x86_64",
+    extension: "AppImage"
+  });
+  assert.match(
+    selectAvailableUpdate([macArm, linux], "0.2.4", {
+      platform: "darwin",
+      arch: "arm64"
+    }).downloadUrl,
+    /mac-arm64\.dmg$/
+  );
+  assert.match(
+    selectAvailableUpdate([macArm, linux], "0.2.4", {
+      platform: "linux",
+      arch: "x64"
+    }).downloadUrl,
+    /linux-x86_64\.AppImage$/
+  );
 });

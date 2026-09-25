@@ -46,7 +46,7 @@ The current desktop flow:
 3. infers the next proposal using deterministic rules;
 4. launches a dedicated ordinary Chrome profile;
 5. waits for you to log in and open Form 141 Schedule B;
-6. fills the main fields;
+6. fills the particulars and deductee-type steps and continues to the main fields;
 7. edits the portal-created buyer and assigns the correct ownership share;
 8. adds remaining buyers, sellers, and the transaction sequentially; and
 9. stops for your review before portal continuation, submission, or payment.
@@ -56,14 +56,17 @@ review screen is planned, but is not claimed as complete yet.
 
 ## Install a release
 
-Download the Windows installer from
-[GitHub Releases](https://github.com/bagdeabhishek/debabufy/releases).
-The builds are currently unsigned, so Windows may display a SmartScreen
-warning. Verify the release and checksum before running it.
+Download the Windows installer, macOS DMG, or Linux AppImage from
+[GitHub Releases](https://github.com/bagdeabhishek/debabufy/releases). macOS
+builds are provided for Intel and Apple Silicon; the Linux AppImage is x64.
+The builds are currently unsigned, so Windows may display a SmartScreen warning
+and macOS may require **Control-click → Open** on first launch. Linux users must
+mark the AppImage executable. Verify the release checksum before running it.
 
-Starting with version 0.2.3, the Windows app checks the project's public
-GitHub releases at startup and shows a download button when a newer installer
-is available. Updates remain user-controlled and are never installed silently.
+Starting with version 0.2.3, the desktop app checks the project's public GitHub
+releases at startup and shows a download button when a newer package for the
+current platform is available. Updates remain user-controlled and are never
+installed silently.
 
 ## Run from source
 

@@ -653,9 +653,20 @@
     const bodyText = normalize(document.body?.innerText);
     const dialog = visibleDialog();
     const dialogText = normalize(dialog?.innerText);
+    const pageControlKeys = new Set(
+      visibleControls(document).flatMap(({ keys }) => keys.map(compact))
+    );
+    const hasParticularsControls = [
+      "taxyear",
+      "monthofdeduction",
+      "naturetransaction"
+    ].filter((key) => pageControlKeys.has(key)).length >= 2;
+    const hasDeducteeTypeControl = pageControlKeys.has("deducteetype");
     const isForm141 =
       /form 141/.test(bodyText) ||
       /schedule b.*393/.test(bodyText) ||
+      hasParticularsControls ||
+      hasDeducteeTypeControl ||
       (
         /tax year of transactions/.test(bodyText) &&
         /month of deduction/.test(bodyText) &&
@@ -754,9 +765,12 @@
     }
 
     if (
-      /tax year of transactions/.test(bodyText) &&
-      /month of deduction/.test(bodyText) &&
-      /nature of transaction/.test(bodyText)
+      hasParticularsControls ||
+      (
+        /tax year of transactions/.test(bodyText) &&
+        /month of deduction/.test(bodyText) &&
+        /nature of transaction/.test(bodyText)
+      )
     ) {
       return {
         flow: "form-141-schedule-b",
@@ -764,6 +778,16 @@
         section: "particulars",
         root: document,
         note: "Review these selections, then use the portal's Continue action yourself."
+      };
+    }
+
+    if (hasDeducteeTypeControl) {
+      return {
+        flow: "form-141-schedule-b",
+        page: "Form 141 deductee type page",
+        section: "deductee-type",
+        root: document,
+        note: "Review the deductee category before continuing."
       };
     }
 

@@ -17,7 +17,8 @@ import { extractPdfText } from "./src/pdf.js";
 import { parseForm132CertificateText } from "./src/certificate.js";
 import {
   nearestDateInSameMonth,
-  parseCalendarDateLabel
+  parseCalendarDateLabel,
+  parsePortalInputDate
 } from "./src/calendar.js";
 import { selectFilingBuyer } from "./src/filer.js";
 import {
@@ -289,11 +290,11 @@ export async function runForm141Automation({
       message: `Connected to ${await page.title() || "the Income Tax portal"}.`
     });
     await installPageHelper(context);
-    const diagnostics = await portalDiagnostics(page);
+    const diagnostics = await advanceToTransactionPage(page, filing, onProgress);
     if (diagnostics.page !== "Form 141 Schedule B transaction page") {
       throw new Error(
-        "Log in and open the main Form 141 Schedule B transaction page " +
-        "with no Add Details editor open, then run the workflow again."
+        "Open Form 141 Schedule B with no Add Details editor open, then run " +
+        "the workflow again."
       );
     }
 
@@ -314,6 +315,75 @@ export async function runForm141Automation({
   } finally {
     await browser.close();
   }
+}
+
+async function advanceToTransactionPage(page, filing, onProgress = () => {}) {
+  for (let step = 0; step < 3; step += 1) {
+    const diagnostics = await portalDiagnostics(page);
+    if (diagnostics.page === "Form 141 Schedule B transaction page") {
+      return diagnostics;
+    }
+    const isParticulars = diagnostics.page === "Form 141 particulars page";
+    const isDeducteeType = [
+      "Form 141 deductee type dialog",
+      "Form 141 deductee type page"
+    ].includes(diagnostics.page);
+    if (!isParticulars && !isDeducteeType) return diagnostics;
+
+    const sectionLabel = isParticulars
+      ? "Form 141 particulars"
+      : "deductee type";
+    onProgress({
+      stage: isParticulars ? "particulars" : "deductee-type",
+      message: `Filling and validating ${sectionLabel}…`
+    });
+    let result = await invokeHelper(page, {
+      type: "FORM141_FILL",
+      filing,
+      overwrite: false
+    });
+    result = await fillConditionalControls(page, filing, result);
+    printPortalResult(result);
+
+    const unresolved = (result.details ?? []).filter((detail) =>
+      ["missing", "unsupported"].includes(detail.outcome)
+    );
+    if (unresolved.length) {
+      throw new Error(
+        `${sectionLabel}: ${unresolved.length} required field(s) could not be ` +
+        `filled: ${unresolved.map((detail) => detail.path).join(", ")}.`
+      );
+    }
+
+    const continueButton = await waitForEnabledActionButton(
+      page,
+      "^\\s*Continue\\s*$",
+      8_000
+    );
+    if (!continueButton) {
+      throw new Error(
+        `${sectionLabel}: the portal Continue button did not become available.`
+      );
+    }
+    await continueButton.click();
+    onProgress({
+      stage: "portal-navigation",
+      message: `Continuing past ${sectionLabel}…`
+    });
+    await waitForPortalContext(
+      page,
+      (next) => isParticulars
+        ? [
+            "Form 141 deductee type dialog",
+            "Form 141 deductee type page",
+            "Form 141 Schedule B transaction page"
+          ].includes(next.page)
+        : next.page === "Form 141 Schedule B transaction page",
+      `${sectionLabel}: the portal did not advance after Continue.`,
+      15_000
+    );
+  }
+  return portalDiagnostics(page);
 }
 
 function proposalSummary(filing) {
@@ -530,6 +600,16 @@ async function automateDetailRows(
       })
     );
     printPortalResult(mainResult);
+
+    const rejectedDates = (mainResult.details ?? []).filter((detail) =>
+      detail.path.endsWith("_date") && detail.outcome === "unsupported"
+    );
+    if (rejectedDates.length) {
+      throw new Error(
+        "The portal did not retain the reviewed date exactly: " +
+        rejectedDates.map((detail) => detail.path).join(", ") + "."
+      );
+    }
 
     const missingBuyerIndexes = [];
     for (let index = 0; index < (filing.buyers ?? []).length; index += 1) {
@@ -1085,9 +1165,20 @@ async function repairMaterialDateInputs(page, filing, result) {
     if (!locator) continue;
     const retained = String(await locator.inputValue().catch(() => "")).trim();
     const invalid = await controlIsInvalid(locator);
-    if (retained && !invalid && detail.outcome !== "unsupported") continue;
+    const retainedDate = parsePortalInputDate(retained);
+    if (
+      retainedDate === String(value) &&
+      !invalid &&
+      detail.outcome !== "unsupported"
+    ) {
+      continue;
+    }
 
     try {
+      if (retained && retainedDate !== String(value)) {
+        await clearMaterialDateInput(locator);
+        await page.waitForTimeout(150);
+      }
       const selected = await selectMaterialDate(
         page,
         locator,
@@ -1095,14 +1186,26 @@ async function repairMaterialDateInputs(page, filing, result) {
         detail.path.startsWith("transaction.")
       );
       if (!selected) {
+        detail.outcome = "unsupported";
         detail.nativeError =
           "Could not select the requested date in the portal calendar.";
         continue;
       }
       await page.waitForTimeout(350);
       if (await controlIsInvalid(locator)) {
+        detail.outcome = "unsupported";
         detail.nativeError =
           "Portal marked the calendar-selected date invalid.";
+        continue;
+      }
+      const observed = parsePortalInputDate(
+        await locator.inputValue().catch(() => "")
+      );
+      if (observed !== selected.selectedDate) {
+        detail.outcome = "unsupported";
+        detail.nativeError =
+          `Portal retained ${observed ?? "an unreadable date"} instead of ` +
+          `${selected.selectedDate}.`;
         continue;
       }
       detail.outcome = "filled-calendar";
@@ -1128,6 +1231,18 @@ async function repairMaterialDateInputs(page, filing, result) {
     }
   }
   return result;
+}
+
+async function clearMaterialDateInput(locator) {
+  await locator.evaluate((control) => {
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set;
+    setter?.call(control, "");
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 }
 
 async function selectMaterialDate(page, input, isoDate, allowNearest = false) {

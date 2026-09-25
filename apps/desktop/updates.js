@@ -2,7 +2,28 @@ const RELEASES_API =
   "https://api.github.com/repos/bagdeabhishek/debabufy/releases?per_page=20";
 const DOWNLOAD_PREFIX =
   "https://github.com/bagdeabhishek/debabufy/releases/download/";
-const INSTALLER_PATTERN = /^DeBabufy-(\d+\.\d+\.\d+)-win-x64\.exe$/i;
+const INSTALLERS = [
+  {
+    platform: "win32",
+    arch: "x64",
+    pattern: /^DeBabufy-(\d+\.\d+\.\d+)-win-x64\.exe$/i
+  },
+  {
+    platform: "darwin",
+    arch: "x64",
+    pattern: /^DeBabufy-(\d+\.\d+\.\d+)-mac-x64\.dmg$/i
+  },
+  {
+    platform: "darwin",
+    arch: "arm64",
+    pattern: /^DeBabufy-(\d+\.\d+\.\d+)-mac-arm64\.dmg$/i
+  },
+  {
+    platform: "linux",
+    arch: "x64",
+    pattern: /^DeBabufy-(\d+\.\d+\.\d+)-linux-(?:x64|x86_64)\.AppImage$/i
+  }
+];
 
 export function compareVersions(left, right) {
   const leftParts = String(left).split(".").map(Number);
@@ -25,10 +46,11 @@ export function compareVersions(left, right) {
 export function isTrustedInstallerUrl(value) {
   try {
     const url = new URL(value);
+    const fileName = decodeURIComponent(url.pathname.split("/").at(-1));
     return url.protocol === "https:" &&
       url.origin === "https://github.com" &&
       url.href.startsWith(DOWNLOAD_PREFIX) &&
-      INSTALLER_PATTERN.test(decodeURIComponent(url.pathname.split("/").at(-1)));
+      INSTALLERS.some(({ pattern }) => pattern.test(fileName));
   } catch {
     return false;
   }
@@ -39,12 +61,15 @@ export function selectAvailableUpdate(
   currentVersion,
   { platform = process.platform, arch = process.arch } = {}
 ) {
-  if (platform !== "win32" || arch !== "x64") return null;
+  const installer = INSTALLERS.find((candidate) =>
+    candidate.platform === platform && candidate.arch === arch
+  );
+  if (!installer) return null;
   const candidates = [];
   for (const release of Array.isArray(releases) ? releases : []) {
     if (release?.draft) continue;
     for (const asset of Array.isArray(release?.assets) ? release.assets : []) {
-      const match = String(asset?.name ?? "").match(INSTALLER_PATTERN);
+      const match = String(asset?.name ?? "").match(installer.pattern);
       if (!match || !isTrustedInstallerUrl(asset?.browser_download_url)) continue;
       if (compareVersions(match[1], currentVersion) <= 0) continue;
       candidates.push({
@@ -68,7 +93,9 @@ export async function fetchAvailableUpdate({
   arch = process.arch,
   fetchImpl = globalThis.fetch
 }) {
-  if (platform !== "win32" || arch !== "x64") return null;
+  if (!INSTALLERS.some((candidate) =>
+    candidate.platform === platform && candidate.arch === arch
+  )) return null;
   const response = await fetchImpl(RELEASES_API, {
     headers: {
       Accept: "application/vnd.github+json",

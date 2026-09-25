@@ -64,7 +64,7 @@ jobs:
           if ($files.Count -eq 0) { throw "No Windows installer was built." }
           foreach ($file in $files) {
             $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
-            "$hash  $($file.Name)" | Out-File -Append -Encoding ascii dist/SHA256SUMS.txt
+            "$hash  $($file.Name)" | Out-File -Append -Encoding ascii dist/SHA256SUMS-windows.txt
           }
 
       - name: Upload deployment artifact
@@ -73,7 +73,91 @@ jobs:
           name: debabufy-windows-main-${{ github.run_number }}-${{ github.sha }}
           path: |
             dist/*.exe
-            dist/SHA256SUMS.txt
+            dist/SHA256SUMS-windows.txt
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  macos:
+    name: Build macOS ${{ matrix.arch }} package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: macos-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build disk image
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run dist:mac -- --${{ matrix.arch }}
+
+      - name: Create SHA-256 checksum
+        run: |
+          cd dist
+          shasum -a 256 *.dmg > SHA256SUMS-macos-${{ matrix.arch }}.txt
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: debabufy-macos-${{ matrix.arch }}-main-${{ github.run_number }}-${{ github.sha }}
+          path: |
+            dist/*.dmg
+            dist/SHA256SUMS-macos-${{ matrix.arch }}.txt
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  linux:
+    name: Build Linux AppImage
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build AppImage
+        run: npm run dist:linux
+
+      - name: Create SHA-256 checksum
+        run: |
+          cd dist
+          sha256sum *.AppImage > SHA256SUMS-linux.txt
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: debabufy-linux-main-${{ github.run_number }}-${{ github.sha }}
+          path: |
+            dist/*.AppImage
+            dist/SHA256SUMS-linux.txt
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
@@ -81,18 +165,19 @@ jobs:
   release:
     name: Publish main prerelease
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: windows
+    needs: [windows, macos, linux]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
 
     steps:
-      - name: Download Windows artifact
+      - name: Download desktop artifacts
         uses: actions/download-artifact@v8
         with:
-          name: debabufy-windows-main-${{ github.run_number }}-${{ github.sha }}
+          pattern: debabufy-*-main-${{ github.run_number }}-${{ github.sha }}
           path: release-assets
+          merge-multiple: true
 
       - name: Create GitHub prerelease
         env:
@@ -103,5 +188,5 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
             --title "DeBabufy main build #${GITHUB_RUN_NUMBER}" \
-            --notes "Automated unsigned Windows alpha build for main commit ${GITHUB_SHA}. Verify SHA256SUMS.txt before running." \
+            --notes "Automated unsigned Windows, macOS, and Linux alpha build for main commit ${GITHUB_SHA}. Verify the platform SHA-256 checksum before running." \
             --prerelease

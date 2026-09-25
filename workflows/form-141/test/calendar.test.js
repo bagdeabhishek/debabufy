@@ -2,13 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   nearestDateInSameMonth,
-  parseCalendarDateLabel
+  parseCalendarDateLabel,
+  parsePortalInputDate
 } from "../src/calendar.js";
 
 test("parses common Angular Material calendar labels", () => {
   assert.equal(parseCalendarDateLabel("5 August 2026"), "2026-08-05");
   assert.equal(parseCalendarDateLabel("August 5, 2026"), "2026-08-05");
   assert.equal(parseCalendarDateLabel("2026-08-05"), "2026-08-05");
+});
+
+test("normalizes portal date input values for exact verification", () => {
+  assert.equal(parsePortalInputDate("04/06/2024"), "2024-06-04");
+  assert.equal(parsePortalInputDate("4-6-2024"), "2024-06-04");
+  assert.equal(parsePortalInputDate("2024-06-04"), "2024-06-04");
+  assert.equal(parsePortalInputDate("31/02/2024"), null);
 });
 
 test("chooses the nearest enabled date and prefers the earlier date on a tie", () => {

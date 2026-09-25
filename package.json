@@ -1,6 +1,7 @@
 {
   "name": "debabufy",
-  "version": "0.2.3",
+  "desktopName": "DeBabufy",
+  "version": "0.2.4",
   "private": true,
   "description": "Local-first desktop automation for repetitive Indian administrative workflows",
   "type": "module",
@@ -29,6 +30,8 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder --publish never",
     "dist:win": "electron-builder --win nsis --publish never",
+    "dist:mac": "electron-builder --mac dmg --publish never",
+    "dist:linux": "electron-builder --linux AppImage --publish never",
     "cli:form141": "node workflows/form-141/cli.js"
   },
   "dependencies": {
@@ -71,6 +74,12 @@
         "nsis"
       ]
     },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities"
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
@@ -81,7 +90,8 @@
       "target": [
         "AppImage"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "syncDesktopName": true
     }
   }
 }

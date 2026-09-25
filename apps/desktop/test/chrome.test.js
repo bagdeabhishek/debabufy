@@ -29,3 +29,13 @@ test("Linux Chrome detection uses known executable locations", () => {
     ]
   );
 });
+
+test("macOS Chrome detection checks system and user applications", () => {
+  assert.deepEqual(
+    chromeCandidates({ platform: "darwin", env: { HOME: "/Users/Test" } }),
+    [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Users/Test/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    ]
+  );
+});
