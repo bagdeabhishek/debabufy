@@ -29,6 +29,10 @@ The parser carries forward the parties and property, calculates a deterministic
 proposal from the previous statement, and shows every important figure for
 review. No LLM, cloud API, or probabilistic agent is involved.
 
+All monetary values sent to the portal are rounded upward to whole rupees. This
+prevents the portal's integer-only controls from removing decimal points and
+turning paise into extra digits.
+
 The current desktop flow:
 
 1. reads the previous PDF, JSON, or text statement locally;

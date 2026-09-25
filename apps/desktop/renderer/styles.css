@@ -174,9 +174,14 @@ button:focus-visible {
 }
 
 .field-help,
-.automatic-note {
+.automatic-note,
+.inline-help {
   color: #74766f;
   font-size: 0.78rem;
+}
+
+.inline-help {
+  font-weight: 400;
 }
 
 .field-help {

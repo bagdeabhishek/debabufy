@@ -18,6 +18,9 @@ from the Form 141 statement and verifies that a cross-buyer Form 132 certificate
 has the selected buyer's PAN, tax year, and previous acknowledgement number.
 Every resolved value is shown in the proposal review.
 
+Portal-bound monetary values are rounded upward to whole rupees before review
+and validation. Decimal values are never passed to the portal controls.
+
 ## Public module interface
 
 ```js

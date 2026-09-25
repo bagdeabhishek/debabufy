@@ -1,8 +1,10 @@
 const MONEY_FIELDS = new Set([
   "property.consideration_value",
   "property.stamp_duty_value",
+  "property.proportionate_stamp_duty_value",
   "transaction.current_payment_amount",
   "transaction.cumulative_previous_installments",
+  "transaction.tax_liable_amount",
   "tax_deposit.tds_amount",
   "tax_deposit.interest",
   "tax_deposit.other_fee",
@@ -15,6 +17,11 @@ function clone(value) {
 
 function roundRupees(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+}
+
+function ceilRupees(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.ceil(parsed) : value;
 }
 
 export function monthOfDeduction(value) {
@@ -69,9 +76,9 @@ function derivePreviousCumulative(previous) {
   const cumulative = Number(previous.transaction?.cumulative_previous_installments);
   const lastPaid = Number(previous.transaction?.current_payment_amount);
   if (Number.isFinite(cumulative) && Number.isFinite(lastPaid)) {
-    return roundRupees(cumulative + lastPaid);
+    return ceilRupees(cumulative + lastPaid);
   }
-  if (Number.isFinite(lastPaid)) return roundRupees(lastPaid);
+  if (Number.isFinite(lastPaid)) return ceilRupees(lastPaid);
   return null;
 }
 
@@ -105,7 +112,8 @@ function addDecision(decisions, path, previousValue, proposedValue, source, conf
 
 export function inferNextFiling(previousInput, options) {
   const previous = clone(previousInput);
-  const amount = asFiniteNumber(options.amount, "Current payment amount");
+  const suppliedAmount = asFiniteNumber(options.amount, "Current payment amount");
+  const amount = ceilRupees(suppliedAmount);
   const paymentDate = String(options.paymentDate ?? "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) {
     throw new Error("Payment date must use YYYY-MM-DD.");
@@ -138,6 +146,13 @@ export function inferNextFiling(previousInput, options) {
   }
   delete candidate.extraction;
 
+  for (const moneyPath of MONEY_FIELDS) {
+    const value = getAtPath(candidate, moneyPath);
+    if (value != null && Number.isFinite(Number(value))) {
+      setAtPath(candidate, moneyPath, ceilRupees(value));
+    }
+  }
+
   const decisions = [];
   const previousFlat = flatten(previous);
   const candidateFlat = flatten(candidate);
@@ -154,7 +169,9 @@ export function inferNextFiling(previousInput, options) {
   }
 
   const rate = deriveRate(previous);
-  const proposedTds = rate.value == null ? null : roundRupees((amount * rate.value) / 100);
+  const proposedTds = rate.value == null
+    ? null
+    : ceilRupees((amount * rate.value) / 100);
   const previousCumulative = derivePreviousCumulative(previous);
 
   const overrides = {
@@ -172,7 +189,9 @@ export function inferNextFiling(previousInput, options) {
 
   for (const [path, proposed] of Object.entries(overrides)) {
     const source = path === "transaction.current_payment_amount"
-      ? "user supplied"
+      ? suppliedAmount === amount
+        ? "user supplied as whole rupees"
+        : "user supplied; rounded up to a whole rupee for the portal"
       : path === "transaction.tax_liable_amount"
         ? "proposed equal to current payment amount"
       : path.includes("payment_date") || path.includes("deduction_date")
@@ -182,7 +201,7 @@ export function inferNextFiling(previousInput, options) {
           : path === "tax_deposit.rate_percent"
             ? rate.source
             : path === "tax_deposit.tds_amount"
-              ? "current payment × proposed prior rate"
+              ? "whole-rupee current payment × proposed prior rate, rounded up"
               : path === "tax_deposit.total_amount"
                 ? "proposed TDS + zero proposed interest/fee"
                 : "reset for new payment; must be confirmed";
@@ -202,6 +221,9 @@ export function inferNextFiling(previousInput, options) {
     "Payment and deduction dates are proposed from the selected date and require review.",
     "No challan or payment will be created by the inference step."
   ];
+  warnings.push(
+    "Portal-bound monetary values are rounded up to whole rupees because the portal does not accept decimal rupee values."
+  );
   if (!previous.meta?.acknowledgement_number) {
     warnings.push("The previous acknowledgement number is missing and must be entered before filing.");
   }
@@ -271,6 +293,8 @@ export function validateReviewedFiling(filing) {
   for (const [path, value] of Object.entries(flatten(filing))) {
     if (MONEY_FIELDS.has(path) && value != null && (!Number.isFinite(Number(value)) || Number(value) < 0)) {
       errors.push(`${path} must be a non-negative number.`);
+    } else if (MONEY_FIELDS.has(path) && value != null && !Number.isInteger(Number(value))) {
+      errors.push(`${path} must be a whole-rupee amount.`);
     }
   }
   return errors;
@@ -279,6 +303,7 @@ export function validateReviewedFiling(filing) {
 export const inferenceInternals = {
   deriveRate,
   derivePreviousCumulative,
+  ceilRupees,
   flatten,
   monthOfDeduction,
   roundRupees

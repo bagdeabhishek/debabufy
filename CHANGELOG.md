@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-09-25
+
+- Round every portal-bound monetary value upward to a whole rupee so the
+  Income Tax portal cannot remove decimal points and inflate the entered
+  amount.
+
 ## 0.2.0 - 2026-09-25
 
 - Added an explicit payment and deduction date to the desktop review flow.

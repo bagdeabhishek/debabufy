@@ -124,3 +124,17 @@ test("keeps the documented synthetic dry run in sync", () => {
   assert.equal(next.tax_deposit.tds_amount, 5_000);
   assert.equal(next.tax_deposit.total_amount, 5_000);
 });
+
+test("rounds portal-bound amounts upward to whole rupees", () => {
+  const previous = parseStatementText(SYNTHETIC_STATEMENT);
+  const next = inferNextFiling(previous, {
+    amount: "614668.95",
+    paymentDate: "2026-08-05"
+  });
+
+  assert.equal(next.transaction.current_payment_amount, 614_669);
+  assert.equal(next.transaction.tax_liable_amount, 614_669);
+  assert.equal(next.tax_deposit.tds_amount, 6_147);
+  assert.equal(next.tax_deposit.total_amount, 6_147);
+  assert.ok(next.review.warnings.some((warning) => /whole rupees/i.test(warning)));
+});
