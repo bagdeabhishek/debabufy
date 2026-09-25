@@ -1312,6 +1312,7 @@ async function fillConditionalControls(
 async function applyNativeInputFallback(page, filing, result) {
   for (const detail of result.details ?? []) {
     if (detail.controlTag !== "input") continue;
+    if (detail.path.endsWith("_date")) continue;
     const value = filingValue(filing, detail.path);
     if (value == null || value === "") continue;
     const locator = await visibleControlLocator(page, detail.controlKeys ?? []);
@@ -1472,6 +1473,31 @@ async function selectMaterialDate(page, input, isoDate, allowNearest = false) {
   ).last();
   await calendar.waitFor({ state: "visible", timeout: 3000 });
 
+  const initialPeriodText = String(
+    await calendar.locator(".mat-calendar-period-button").first()
+      .innerText()
+      .catch(() => "")
+  ).trim();
+  const initialPeriod = parseMaterialCalendarPeriod(initialPeriodText);
+  const targetIndex = year * 12 + month - 1;
+  const initialIndex = initialPeriod
+    ? initialPeriod.year * 12 + initialPeriod.month - 1
+    : null;
+  if (initialIndex != null && Math.abs(targetIndex - initialIndex) > 2) {
+    const jumped = await jumpMaterialCalendarToMonth(
+      page,
+      calendar,
+      year,
+      month
+    );
+    if (!jumped) {
+      // Restore the ordinary month view before using the conservative fallback.
+      await page.keyboard.press("Escape").catch(() => {});
+      await toggle.click();
+      await calendar.waitFor({ state: "visible", timeout: 3000 });
+    }
+  }
+
   for (let attempt = 0; attempt < 36; attempt += 1) {
     const matchingCell = await matchingMaterialDateCell(
       calendar,
@@ -1491,7 +1517,6 @@ async function selectMaterialDate(page, input, isoDate, allowNearest = false) {
     ).trim();
     const current = parseMaterialCalendarPeriod(periodText);
     if (!current) break;
-    const targetIndex = year * 12 + month - 1;
     const currentIndex = current.year * 12 + current.month - 1;
     if (targetIndex === currentIndex) {
       if (allowNearest) {
@@ -1525,6 +1550,77 @@ async function selectMaterialDate(page, input, isoDate, allowNearest = false) {
   }
 
   await page.keyboard.press("Escape").catch(() => {});
+  return false;
+}
+
+async function jumpMaterialCalendarToMonth(page, calendar, year, month) {
+  const periodButton = calendar.locator(".mat-calendar-period-button").first();
+  if (!(await periodButton.isVisible().catch(() => false))) return false;
+  await periodButton.click();
+  await page.waitForTimeout(100);
+
+  let selectedYear = false;
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const cells = calendar.locator(
+      ".mat-calendar-body-cell:not(.mat-calendar-body-disabled)"
+    );
+    const visibleYears = [];
+    for (let index = 0; index < await cells.count(); index += 1) {
+      const cell = cells.nth(index);
+      const label = String(
+        await cell.getAttribute("aria-label").catch(() => "")
+      ).trim();
+      const text = String(await cell.innerText().catch(() => "")).trim();
+      const candidate = [label, text]
+        .map((value) => value.match(/^(?:.*\D)?(\d{4})(?:\D.*)?$/)?.[1])
+        .map(Number)
+        .find(Number.isFinite);
+      if (candidate) visibleYears.push(candidate);
+      if (candidate === year) {
+        await cell.click();
+        selectedYear = true;
+        break;
+      }
+    }
+    if (selectedYear) break;
+    if (!visibleYears.length) return false;
+    const direction = year < Math.min(...visibleYears) ? "previous" : "next";
+    const navigation = calendar.locator(
+      `.mat-calendar-${direction}-button`
+    ).first();
+    if (
+      !(await navigation.isVisible().catch(() => false)) ||
+      await navigation.isDisabled().catch(() => true)
+    ) return false;
+    await navigation.click();
+    await page.waitForTimeout(100);
+  }
+  if (!selectedYear) return false;
+  await page.waitForTimeout(100);
+
+  const monthNames = [
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december"
+  ];
+  const wantedMonth = monthNames[month - 1];
+  const monthCells = calendar.locator(
+    ".mat-calendar-body-cell:not(.mat-calendar-body-disabled)"
+  );
+  for (let index = 0; index < await monthCells.count(); index += 1) {
+    const cell = monthCells.nth(index);
+    const label = `${
+      await cell.getAttribute("aria-label").catch(() => "")
+    } ${await cell.innerText().catch(() => "")}`.trim().toLowerCase();
+    if (
+      label.includes(wantedMonth) ||
+      new RegExp(`(?:^|\\W)${wantedMonth.slice(0, 3)}(?:$|\\W)`, "i")
+        .test(label)
+    ) {
+      await cell.click();
+      await page.waitForTimeout(100);
+      return true;
+    }
+  }
   return false;
 }
 
@@ -1562,13 +1658,18 @@ async function matchingMaterialDateCell(calendar, year, month, day) {
   );
   for (let index = 0; index < await cells.count(); index += 1) {
     const cell = cells.nth(index);
-    const label = String(await cell.getAttribute("aria-label") ?? "")
-      .trim()
-      .toLowerCase();
+    const rawLabel = String(await cell.getAttribute("aria-label") ?? "").trim();
+    const targetIso = [
+      year,
+      String(month).padStart(2, "0"),
+      String(day).padStart(2, "0")
+    ].join("-");
+    if (parseCalendarDateLabel(rawLabel) === targetIso) return cell;
+    const label = rawLabel.toLowerCase();
     if (
       label.includes(String(year)) &&
       (label.includes(monthName) || label.includes(monthName.slice(0, 3))) &&
-      new RegExp(`(?:^|\\D)${day}(?:\\D|$)`).test(label)
+      new RegExp(`(?:^|\\D)0?${day}(?:\\D|$)`).test(label)
     ) {
       return cell;
     }

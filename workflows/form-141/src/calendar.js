@@ -26,7 +26,9 @@ export function parseCalendarDateLabel(value) {
   const iso = label.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
   if (iso) return isoDate(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 
-  const dayFirst = label.match(/\b(\d{1,2})\s+([A-Za-z]+)\s+(20\d{2})\b/);
+  const dayFirst = label.match(
+    /\b(\d{1,2})(?:\s+|[-/.])([A-Za-z]+)(?:\s+|[-/.])(20\d{2})\b/
+  );
   if (dayFirst) {
     const month = monthNumber(dayFirst[2]);
     return month == null

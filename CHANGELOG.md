@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.2.8 - 2026-09-26
+
+- Select distant agreement dates through the Material calendar's year and
+  month views instead of clicking Previous once for every intervening month.
+- Correctly recognize the portal's zero-padded `04-Jun-2024` date-cell labels,
+  preventing failed selection, repeated repair attempts, and January 2006
+  fallback values.
+- Stop typing dates into Angular's masked date inputs before opening the
+  calendar; date-picker values are now selected and verified only by calendar.
+- Retain month-by-month navigation as a fallback for portal calendar variants.
+
 ## 0.2.7 - 2026-09-26
 
 - Include redacted business status, error, and message fields returned by the

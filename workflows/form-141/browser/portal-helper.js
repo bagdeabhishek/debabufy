@@ -1119,6 +1119,7 @@
       return true;
     }
     if (control.matches("input, textarea")) {
+      if (control.matches("input.mat-datepicker-input")) return false;
       const formatted = formatForControl(control, value, label);
       const prototype = control.tagName === "TEXTAREA"
         ? HTMLTextAreaElement.prototype

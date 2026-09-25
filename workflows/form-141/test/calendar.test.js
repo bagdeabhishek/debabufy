@@ -8,6 +8,7 @@ import {
 
 test("parses common Angular Material calendar labels", () => {
   assert.equal(parseCalendarDateLabel("5 August 2026"), "2026-08-05");
+  assert.equal(parseCalendarDateLabel("04-Jun-2024"), "2024-06-04");
   assert.equal(parseCalendarDateLabel("August 5, 2026"), "2026-08-05");
   assert.equal(parseCalendarDateLabel("2026-08-05"), "2026-08-05");
 });
