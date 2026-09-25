@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.5 - 2026-09-26
+
+- Save live diagnostics for failures during the particulars and intermediate
+  Continue stages, not only failures while adding detail rows.
+- Record redacted visible validation messages, portal request statuses, and
+  browser warnings/errors when Continue fails to advance.
+
 ## 0.2.4 - 2026-09-25
 
 - Recognize the Form 141 particulars screen from its rendered controls even

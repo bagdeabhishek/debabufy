@@ -952,6 +952,13 @@
           Boolean(control.disabled) ||
           control.getAttribute("aria-disabled") === "true"
       }));
+    const messages = [...context.root.querySelectorAll(
+      "mat-error, .mat-mdc-form-field-error, .mat-error, [role='alert'], " +
+      ".alert, .error-message, .validation-error, .mat-mdc-snack-bar-label"
+    )]
+      .filter(isVisible)
+      .map((element) => redactDiagnosticText(element.textContent))
+      .filter(Boolean);
     return {
       ok: true,
       generatedAt: new Date().toISOString(),
@@ -959,7 +966,8 @@
       flow: context.flow,
       page: context.page,
       visibleControls: controls,
-      visibleActions: actions
+      visibleActions: actions,
+      visibleMessages: [...new Set(messages)]
     };
   }
 

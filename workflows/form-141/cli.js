@@ -257,6 +257,7 @@ export async function runForm141Automation({
     message: "Connecting to the ordinary Chrome session…"
   });
   let browser;
+  let page = null;
   try {
     browser = await chromium.connectOverCDP(cdp);
   } catch (error) {
@@ -271,7 +272,7 @@ export async function runForm141Automation({
     if (!context) {
       throw new Error("The attached Chrome session did not expose a browser context.");
     }
-    const page = await activePortalPage(context.pages());
+    page = await activePortalPage(context.pages());
     if (!page) {
       throw new Error(
         `No Income Tax portal tab is open. Open ${PORTAL_URL}, log in, ` +
@@ -312,6 +313,25 @@ export async function runForm141Automation({
           : "Review the portal before continuing.")
     });
     return summary;
+  } catch (error) {
+    const message = error.message || String(error);
+    if (!page || /Live diagnostics (?:were saved|could not be saved)/.test(message)) {
+      throw error;
+    }
+    let diagnosticPath;
+    try {
+      diagnosticPath = await saveLivePageDiagnostics(
+        page,
+        diagnosticsDirectory,
+        {
+          failure: redactRuntimeText(message),
+          continueAttempt: error.continueAttempt ?? null
+        }
+      );
+    } catch {
+      throw new Error(`${message} Live diagnostics could not be saved.`);
+    }
+    throw new Error(`${message} Live diagnostics were saved to ${diagnosticPath}.`);
   } finally {
     await browser.close();
   }
@@ -365,25 +385,86 @@ async function advanceToTransactionPage(page, filing, onProgress = () => {}) {
         `${sectionLabel}: the portal Continue button did not become available.`
       );
     }
-    await continueButton.click();
-    onProgress({
-      stage: "portal-navigation",
-      message: `Continuing past ${sectionLabel}…`
-    });
-    await waitForPortalContext(
-      page,
-      (next) => isParticulars
-        ? [
-            "Form 141 deductee type dialog",
-            "Form 141 deductee type page",
-            "Form 141 Schedule B transaction page"
-          ].includes(next.page)
-        : next.page === "Form 141 Schedule B transaction page",
-      `${sectionLabel}: the portal did not advance after Continue.`,
-      15_000
-    );
+    const continueAttempt = captureContinueAttempt(page, sectionLabel);
+    try {
+      await continueButton.click();
+      onProgress({
+        stage: "portal-navigation",
+        message: `Continuing past ${sectionLabel}…`
+      });
+      await waitForPortalContext(
+        page,
+        (next) => isParticulars
+          ? [
+              "Form 141 deductee type dialog",
+              "Form 141 deductee type page",
+              "Form 141 Schedule B transaction page"
+            ].includes(next.page)
+          : next.page === "Form 141 Schedule B transaction page",
+        `${sectionLabel}: the portal did not advance after Continue.`,
+        15_000
+      );
+    } catch (error) {
+      error.continueAttempt = continueAttempt.result;
+      throw error;
+    } finally {
+      continueAttempt.stop();
+    }
   }
   return portalDiagnostics(page);
+}
+
+function captureContinueAttempt(page, section) {
+  const result = {
+    section,
+    startedAt: new Date().toISOString(),
+    responses: [],
+    consoleMessages: []
+  };
+  const onResponse = (response) => {
+    try {
+      const url = new URL(response.url());
+      const request = response.request();
+      if (
+        !/(?:^|\.)incometax\.gov\.in$/i.test(url.hostname) ||
+        !["xhr", "fetch"].includes(request.resourceType())
+      ) return;
+      result.responses.push({
+        method: request.method(),
+        path: url.pathname,
+        status: response.status()
+      });
+      result.responses = result.responses.slice(-30);
+    } catch {
+      // Ignore malformed or unrelated response metadata.
+    }
+  };
+  const onConsole = (message) => {
+    if (!["warning", "error"].includes(message.type())) return;
+    result.consoleMessages.push({
+      type: message.type(),
+      text: redactRuntimeText(message.text())
+    });
+    result.consoleMessages = result.consoleMessages.slice(-20);
+  };
+  page.on("response", onResponse);
+  page.on("console", onConsole);
+  return {
+    result,
+    stop() {
+      result.finishedAt = new Date().toISOString();
+      page.off("response", onResponse);
+      page.off("console", onConsole);
+    }
+  };
+}
+
+function redactRuntimeText(value) {
+  return String(value ?? "")
+    .replace(/\b[A-Z]{5}\d{4}[A-Z]\b/gi, "[PAN]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[EMAIL]")
+    .replace(/\b\d{10,}\b/g, "[NUMBER]")
+    .slice(0, 500);
 }
 
 function proposalSummary(filing) {
@@ -548,7 +629,11 @@ async function invokeHelper(page, message) {
   }), message);
 }
 
-async function saveLivePageDiagnostics(page, outputDirectory = process.cwd()) {
+async function saveLivePageDiagnostics(
+  page,
+  outputDirectory = process.cwd(),
+  extra = {}
+) {
   const diagnostics = await invokeHelper(page, {
     type: "FORM141_DIAGNOSTICS"
   });
@@ -561,7 +646,11 @@ async function saveLivePageDiagnostics(page, outputDirectory = process.cwd()) {
     outputDirectory,
     `form141-live-page-${timestamp}.json`
   );
-  await fs.writeFile(outputPath, `${JSON.stringify(diagnostics, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    outputPath,
+    `${JSON.stringify({ ...diagnostics, ...extra }, null, 2)}\n`,
+    "utf8"
+  );
   return outputPath;
 }
 

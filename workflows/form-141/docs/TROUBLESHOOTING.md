@@ -40,6 +40,11 @@ diagnostic page map. Press **Open diagnostic folder**, inspect and redact the
 file, and report the DeBabufy version, operating system, Chrome version,
 workflow stage, and rewritten synthetic labels.
 
+Failures on the particulars screen and a Continue button that does not advance
+the portal are included from version 0.2.5. The report records visible
+validation messages, redacted browser errors, and Income Tax portal request
+paths and status codes; it does not record request or response bodies.
+
 Never post a real statement, diagnostic file, PAN, name, contact detail,
 address, acknowledgement number, payment reference, cookie, token, HAR,
 browser profile, or unredacted screenshot.
