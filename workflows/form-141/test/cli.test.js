@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { localDate, parseCliArgs } from "../cli/args.js";
-import { acceptValidPopulatedControls } from "../cli.js";
+import {
+  acceptValidPopulatedControls,
+  diagnosticEmptyPaths,
+  diagnosticResponseSignals
+} from "../cli.js";
 
 test("parses statement CLI arguments", () => {
   const result = parseCliArgs([
@@ -94,4 +98,29 @@ test("does not accept an invalid manually populated control", () => {
   );
   assert.equal(result.details[0].outcome, "unsupported");
   assert.equal(result.unsupported, 1);
+});
+
+test("captures response error signals without copying unrelated values", () => {
+  const signals = diagnosticResponseSignals({
+    header: { status: "failure", requestId: "secret-request" },
+    errors: [{ code: "FORM_INVALID", message: "Month is invalid" }],
+    taxpayerName: "Private Name"
+  });
+  assert.deepEqual(signals, [
+    { path: "header.status", value: "failure" },
+    { path: "errors[0].code", value: "FORM_INVALID" },
+    { path: "errors[0].message", value: "Month is invalid" }
+  ]);
+});
+
+test("captures only empty request paths", () => {
+  assert.deepEqual(
+    diagnosticEmptyPaths({
+      taxYear: "2026-27",
+      month: "",
+      buyer: { pan: null, share: 50 },
+      sellers: []
+    }),
+    ["month", "buyer.pan", "sellers"]
+  );
 });

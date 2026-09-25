@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.7 - 2026-09-26
+
+- Include redacted business status, error, and message fields returned by the
+  portal's Continue requests in local diagnostics.
+- Record submitted request keys and empty field paths without copying taxpayer
+  values, so account-specific draft validation failures can be diagnosed.
+
 ## 0.2.6 - 2026-09-26
 
 - Accept a manually selected, populated, valid month of deduction when the

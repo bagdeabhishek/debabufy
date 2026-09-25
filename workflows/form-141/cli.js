@@ -412,7 +412,7 @@ async function advanceToTransactionPage(page, filing, onProgress = () => {}) {
       error.continueAttempt = continueAttempt.result;
       throw error;
     } finally {
-      continueAttempt.stop();
+      await continueAttempt.stop();
     }
   }
   return portalDiagnostics(page);
@@ -460,6 +460,7 @@ function captureContinueAttempt(page, section) {
     responses: [],
     consoleMessages: []
   };
+  const pendingResponseDetails = new Set();
   const onResponse = (response) => {
     try {
       const url = new URL(response.url());
@@ -468,12 +469,19 @@ function captureContinueAttempt(page, section) {
         !/(?:^|\.)incometax\.gov\.in$/i.test(url.hostname) ||
         !["xhr", "fetch"].includes(request.resourceType())
       ) return;
-      result.responses.push({
+      const entry = {
         method: request.method(),
         path: url.pathname,
-        status: response.status()
-      });
+        status: response.status(),
+        requestShape: diagnosticRequestShape(request)
+      };
+      result.responses.push(entry);
       result.responses = result.responses.slice(-30);
+      const detailTask = diagnosticResponseDetails(response)
+        .then((details) => Object.assign(entry, details))
+        .catch(() => {})
+        .finally(() => pendingResponseDetails.delete(detailTask));
+      pendingResponseDetails.add(detailTask);
     } catch {
       // Ignore malformed or unrelated response metadata.
     }
@@ -490,12 +498,91 @@ function captureContinueAttempt(page, section) {
   page.on("console", onConsole);
   return {
     result,
-    stop() {
-      result.finishedAt = new Date().toISOString();
+    async stop() {
       page.off("response", onResponse);
       page.off("console", onConsole);
+      await Promise.allSettled([...pendingResponseDetails]);
+      result.finishedAt = new Date().toISOString();
     }
   };
+}
+
+function diagnosticRequestShape(request) {
+  try {
+    const body = request.postDataJSON();
+    if (!body || typeof body !== "object") return null;
+    return {
+      topLevelKeys: Object.keys(body).slice(0, 60),
+      emptyPaths: diagnosticEmptyPaths(body).slice(0, 60)
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function diagnosticResponseDetails(response) {
+  const contentType = String(response.headers()["content-type"] ?? "");
+  if (!/json/i.test(contentType)) return {};
+  const body = await response.json();
+  return {
+    responseTopLevelKeys:
+      body && typeof body === "object" ? Object.keys(body).slice(0, 60) : [],
+    responseSignals: diagnosticResponseSignals(body).slice(0, 60)
+  };
+}
+
+export function diagnosticResponseSignals(
+  value,
+  pathPrefix = "",
+  signals = [],
+  depth = 0
+) {
+  if (signals.length >= 60 || depth > 8 || value == null) return signals;
+  if (Array.isArray(value)) {
+    value.slice(0, 20).forEach((item, index) =>
+      diagnosticResponseSignals(item, `${pathPrefix}[${index}]`, signals, depth + 1)
+    );
+    return signals;
+  }
+  if (typeof value !== "object") return signals;
+  for (const [key, child] of Object.entries(value)) {
+    if (signals.length >= 60) break;
+    const childPath = pathPrefix ? `${pathPrefix}.${key}` : key;
+    if (
+      /(?:error|message|status|success|code|description|reason|result)/i.test(key) &&
+      ["string", "number", "boolean"].includes(typeof child)
+    ) {
+      signals.push({ path: childPath, value: redactRuntimeText(child) });
+    }
+    diagnosticResponseSignals(child, childPath, signals, depth + 1);
+  }
+  return signals;
+}
+
+export function diagnosticEmptyPaths(
+  value,
+  pathPrefix = "",
+  paths = [],
+  depth = 0
+) {
+  if (paths.length >= 60 || depth > 8 || value == null) return paths;
+  if (Array.isArray(value)) {
+    value.slice(0, 20).forEach((item, index) =>
+      diagnosticEmptyPaths(item, `${pathPrefix}[${index}]`, paths, depth + 1)
+    );
+    return paths;
+  }
+  if (typeof value !== "object") return paths;
+  for (const [key, child] of Object.entries(value)) {
+    if (paths.length >= 60) break;
+    const childPath = pathPrefix ? `${pathPrefix}.${key}` : key;
+    if (child == null || child === "" || (Array.isArray(child) && !child.length)) {
+      paths.push(childPath);
+      continue;
+    }
+    diagnosticEmptyPaths(child, childPath, paths, depth + 1);
+  }
+  return paths;
 }
 
 function redactRuntimeText(value) {
