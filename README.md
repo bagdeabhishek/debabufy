@@ -1,140 +1,192 @@
-# DeBabufy
+<p align="center">
+  <img src="assets/brand/debabufy-mark.png" width="180" alt="DeBabufy logo — paperwork breaking free from red tape">
+</p>
 
-**Your paperwork. Less babu. More done.**
+<h1 align="center">DeBabufy</h1>
 
-DeBabufy is an unofficial, open-source desktop application for repetitive
-Indian administrative workflows. It runs locally, connects to an ordinary
-Chrome session, and keeps a human in control of authentication, review,
-submission, and payment.
+<p align="center">
+  <strong>India runs on forms. DeBabufy handles the repetitive bits.</strong><br>
+  A local-first desktop app for turning tedious government workflows into<br>
+  deterministic, reviewable automations.
+</p>
 
-> [!WARNING]
-> DeBabufy is not affiliated with or endorsed by the Government of India or the
-> Income Tax Department. It does not provide tax or legal advice.
+<p align="center">
+  <a href="https://github.com/bagdeabhishek/debabufy/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/bagdeabhishek/debabufy/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/bagdeabhishek/debabufy/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/bagdeabhishek/debabufy?include_prereleases&label=release&color=0aa69a"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-e06f39"></a>
+  <a href="CONTRIBUTING.md"><img alt="Contributions welcome" src="https://img.shields.io/badge/contributions-welcome-24372a"></a>
+</p>
 
-## Current workflow
+<p align="center">
+  <a href="https://github.com/bagdeabhishek/debabufy/releases"><strong>Download for Windows, macOS, or Linux</strong></a>
+  ·
+  <a href="#see-it-in-30-seconds">See how it works</a>
+  ·
+  <a href="#contributing">Build the next workflow</a>
+</p>
 
-### Income Tax Form 141 — Schedule B
+> [!IMPORTANT]
+> DeBabufy is unofficial alpha software. It is not affiliated with or endorsed
+> by the Government of India or the Income Tax Department, and it does not
+> provide tax or legal advice. Always review the portal before continuing.
 
-The first workflow prepares a subsequent property-TDS instalment using:
+## Less babu. More done.
 
-1. the previous Form 141 challan statement; and
-2. the amount and date of the current instalment.
+Government portals often ask for information you already supplied last time.
+DeBabufy reads the previous document locally, carries forward the stable facts,
+calculates the new values with deterministic rules, and fills the repetitive
+parts in a normal Chrome session.
 
-For a jointly purchased property, choose the buyer whose Income Tax account is
-currently logged in. If that buyer did not file the selected Form 141 statement,
-DeBabufy asks for their previous Form 132 certificate and verifies the buyer PAN
-before carrying forward that buyer's acknowledgement number.
+| Local by default | Deterministic | Human-controlled |
+|:---:|:---:|:---:|
+| No filing backend or telemetry | No runtime LLM or probabilistic guessing | You handle login, OTP, review, submission, and payment |
 
-The parser carries forward the parties and property, calculates a deterministic
-proposal from the previous statement, and shows every important figure for
-review. No LLM, cloud API, or probabilistic agent is involved.
+## See it in 30 seconds
 
-All monetary values sent to the portal are rounded upward to whole rupees. This
-prevents the portal's integer-only controls from removing decimal points and
-turning paise into extra digits.
+```text
+Previous statement  +  This instalment
+             │
+             ▼
+      Review the proposal
+             │
+             ▼
+       Log in normally
+             │
+             ▼
+   DeBabufy fills the portal
+             │
+             ▼
+        You review again
+```
 
-For transaction payment and deduction dates, DeBabufy first selects the exact
-reviewed date. If the portal disables that date, it selects the nearest enabled
-date in the same month, preferring the earlier date on a tie, and surfaces the
-substitution for review. Property agreement dates are never approximated.
+For the first bundled workflow:
 
-The current desktop flow:
+1. Drop in the previous **Form 141 challan statement**.
+2. Enter the current amount and date.
+3. Choose the buyer filing from the currently logged-in account.
+4. Review parties, property, dates, TDS, interest, fee, and total.
+5. Log into the Income Tax portal in the ordinary Chrome window DeBabufy opens.
+6. Watch DeBabufy fill the particulars and detail dialogs, then review the result.
 
-1. reads the previous PDF, JSON, or text statement locally;
-2. lets you select the filing buyer and verifies buyer-specific Form 132 evidence
-   when necessary;
-3. infers the next proposal using deterministic rules;
-4. launches a dedicated ordinary Chrome profile;
-5. waits for you to log in and open Form 141 Schedule B;
-6. fills the particulars and deductee-type steps and continues to the main fields;
-7. edits the portal-created buyer and assigns the correct ownership share;
-8. adds remaining buyers, sellers, and the transaction sequentially; and
-9. stops for your review before portal continuation, submission, or payment.
+It stops before final submission or payment authorization.
 
-Navigation from the portal home page to Form 141 and onward to the payment
-review screen is planned, but is not claimed as complete yet.
+## Available today
 
-## Install a release
+### Form 141 · Schedule B
 
-Download the Windows installer, macOS DMG, or Linux AppImage from
-[GitHub Releases](https://github.com/bagdeabhishek/debabufy/releases). macOS
-builds are provided for Intel and Apple Silicon; the Linux AppImage is x64.
-The builds are currently unsigned, so Windows may display a SmartScreen warning
-and macOS may require **Control-click → Open** on first launch. Linux users must
-mark the AppImage executable. Verify the release checksum before running it.
+Property-TDS instalments under section 393(1), including joint buyers and a
+corporate or non-corporate seller.
 
-Starting with version 0.2.3, the desktop app checks the project's public GitHub
-releases at startup and shows a download button when a newer package for the
-current platform is available. Updates remain user-controlled and are never
-installed silently.
+- Reads the previous Form 141 statement from PDF, JSON, or text.
+- Uses buyer-specific Form 132 evidence when a different joint buyer is filing.
+- Carries forward the property, buyers, seller, and previous acknowledgement.
+- Rounds portal-bound monetary values upward to whole rupees.
+- Selects and verifies agreement, payment, and deduction dates.
+- Edits the portal-created buyer before adding the remaining details.
+- Adds buyers, sellers, and the transaction sequentially.
+- Saves local diagnostics and fails closed when the portal changes.
+
+Navigation from the portal dashboard to Form 141—and onward to the final
+payment-review screen—is the next milestone. The current release expects you to
+open Form 141 after logging in.
+
+## Why it uses your normal Chrome
+
+Some government portals reject browser profiles launched as automation. So
+DeBabufy takes a different route:
+
+```text
+DeBabufy desktop app
+      └── opens an ordinary, dedicated Chrome profile
+              ├── you authenticate normally
+              └── DeBabufy attaches locally over a loopback-only port
+```
+
+Playwright is used as a precise UI driver, not as a hosted bot. Credentials,
+OTP, and CAPTCHA remain between you and the portal.
+
+## Install
+
+Get the latest unsigned alpha package from
+[GitHub Releases](https://github.com/bagdeabhishek/debabufy/releases):
+
+| Platform | Package | First launch |
+|---|---|---|
+| Windows x64 | `.exe` installer | SmartScreen may ask for confirmation |
+| macOS Apple Silicon | `arm64.dmg` | Control-click → **Open** |
+| macOS Intel | `x64.dmg` | Control-click → **Open** |
+| Linux x64 | `.AppImage` | Mark the file executable |
+
+Every package is built from `main` by GitHub Actions and published with a
+SHA-256 checksum. The app checks public releases for updates but never installs
+one silently.
 
 ## Run from source
 
-Requirements:
-
-- Node.js 22 or newer;
-- Google Chrome; and
-- Windows, macOS, or Linux.
+Requirements: Node.js 22+, Google Chrome, and Windows, macOS, or Linux.
 
 ```sh
 git clone https://github.com/bagdeabhishek/debabufy.git
 cd debabufy
 npm install
+npm test
 npm start
 ```
 
-Chrome is launched directly by the desktop app with a dedicated non-default
-profile and a loopback-only debugging port. Playwright attaches to that ordinary
-Chrome process; it does not launch a bundled automation browser.
+## Trust, not magic
 
-## Repository layout
+- Filing data stays on your device.
+- No analytics or telemetry is collected.
+- No runtime LLM sees your documents.
+- DeBabufy never enters credentials or solves CAPTCHA/OTP.
+- Unknown screens and invalid values stop the workflow instead of guessing.
+- Final submission and payment authorization remain manual.
+- Diagnostics stay local until you choose to share them.
 
-```text
-apps/
-  desktop/                 Electron shell and local UI
-workflows/
-  registry.js              Explicit bundled-workflow registry
-  form-141/                Self-contained Form 141 workflow
-    browser/               Income Tax portal helper
-    cli/                   Advanced CLI argument handling
-    docs/                  Workflow-specific troubleshooting
-    examples/              Synthetic fixtures
-    src/                   Parser, inference, and portal helpers
-    test/                  Workflow tests
-    index.js               Desktop-facing workflow API
-    workflow.json          Metadata and input definition
-```
-
-Everything is bundled in the application for now. A signed plug-in system can
-be designed later, after at least two workflows have proven the common
-interface.
+Read the [privacy policy](PRIVACY.md), [security policy](SECURITY.md), and
+[support guide](SUPPORT.md) before using real filing data.
 
 ## Contributing
 
-Contributions are welcome: portal fixes, accessibility improvements, test
-fixtures, documentation, and new workflows.
+DeBabufy is meant to grow one boring workflow at a time. Contributions are
+welcome for portal fixes, accessibility, tests, documentation, design, and new
+Indian administrative workflows.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Never
-commit a real statement, PAN, Aadhaar number, address, portal response, cookie,
-token, screenshot, HAR, or browser profile. Use synthetic fixtures.
+```text
+workflows/
+  registry.js             Explicit bundled-workflow registry
+  form-141/               One self-contained workflow
+    browser/              Portal interaction helper
+    docs/                 Workflow-specific support
+    examples/             Synthetic fixtures only
+    src/                  Parsing and deterministic inference
+    test/                 Workflow tests
+    workflow.json         Metadata and input definition
+```
 
-Each new workflow belongs in its own `workflows/<workflow-id>/` directory and
-must expose the same small `prepare` and `run` interface. See the
-[Form 141 module](workflows/form-141/README.md) for the initial example.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and use only synthetic or fully
+redacted fixtures. Never commit a real statement, PAN, Aadhaar number, address,
+portal response, cookie, token, HAR, screenshot, or browser profile.
 
-## Privacy and safety
+Good first contributions include:
 
-- Filing data stays on the device.
-- No telemetry is collected.
-- Credentials, OTP, and CAPTCHA remain entirely with the user.
-- Portal changes fail closed instead of guessing.
-- Diagnostics are stored locally and may still contain sensitive page
-  structure; review them before sharing.
-- DeBabufy never clicks final submission or authorizes payment.
+- making an existing selector more resilient;
+- improving keyboard and screen-reader support;
+- adding synthetic parser fixtures;
+- documenting a reproducible portal change; or
+- proposing the next small, deterministic workflow.
 
-Read [PRIVACY.md](PRIVACY.md), [SECURITY.md](SECURITY.md), and
-[SUPPORT.md](SUPPORT.md) for details.
+## Roadmap
+
+- [x] Local-first desktop shell
+- [x] Form 141 Schedule B workflow
+- [x] Windows, macOS, and Linux release artifacts
+- [x] Joint-buyer and buyer-specific acknowledgement support
+- [ ] Dashboard-to-payment-review navigation
+- [ ] Signed release packages
+- [ ] A stable, reviewed workflow plug-in interface
+- [ ] More useful Indian administrative workflows
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) · Built in the open, for fewer unnecessary `chakkar`.

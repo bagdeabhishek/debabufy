@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.9 - 2026-09-27
+
+- Add a public-facing DeBabufy identity built around paperwork breaking free
+  from red tape, and use the mark in the desktop window.
+- Redesign the README for a clearer product pitch, visual workflow, prominent
+  downloads, trust model, contributor entry points, and public roadmap.
+
 ## 0.2.8 - 2026-09-26
 
 - Select distant agreement dates through the Material calendar's year and

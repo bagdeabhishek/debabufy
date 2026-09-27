@@ -46,6 +46,14 @@ function createWindow() {
     show: false,
     backgroundColor: "#f6f1e7",
     title: "DeBabufy",
+    icon: path.join(
+      appDirectory,
+      "..",
+      "..",
+      "assets",
+      "brand",
+      "debabufy-mark.png"
+    ),
     webPreferences: {
       preload: path.join(appDirectory, "preload.cjs"),
       contextIsolation: true,

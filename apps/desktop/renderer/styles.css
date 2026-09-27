@@ -51,15 +51,10 @@ button:disabled {
 }
 
 .brand-mark {
-  display: grid;
   width: 52px;
   height: 52px;
-  place-items: center;
-  border-radius: 15px;
-  color: #fffaf0;
-  background: #24372a;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 12px rgba(36, 55, 42, 0.12));
 }
 
 .eyebrow {
