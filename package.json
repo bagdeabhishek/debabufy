@@ -35,7 +35,7 @@
     "cli:form141": "node workflows/form-141/cli.js"
   },
   "dependencies": {
-    "pdfjs-dist": "^6.3.289",
+    "pdfjs-dist": "^6.4.299",
     "playwright-core": "^1.62.0"
   },
   "devDependencies": {
